@@ -55,6 +55,29 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth();
+        auth.signInAnonymously().catch(err => showErr(err.message || err));
+
+        async function submitPrediction(prediction) {
+          const uid = auth.currentUser.uid;
+          const ref = db.collection('users').doc(uid).collection('predictions');
+          const docRef = await ref.add({
+            ...prediction,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            actualResults: null
+          });
+          return docRef.id;
+        }
+
+        async function submitActualResults(predictionId, actualResults) {
+          const uid = auth.currentUser.uid;
+          const ref = db.collection('users').doc(uid)
+                        .collection('predictions').doc(predictionId);
+          await ref.update({
+            actualResults,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
 
         // Datalist helpers
         const renderOptions = (dl, opts) => {
@@ -142,12 +165,11 @@
               level: s.level,
               isMaths: s.isMaths,
               probs: s.probs
-            })),
-            timestamp: new Date().toISOString()
+            }))
           };
-          db.collection('submissions').add(payload).then(()=>{
-            console.log('Saved submission');
-          }).catch(err=> showErr(err.message || err));
+          submitPrediction(payload).then(id => {
+            console.log('Saved submission', id);
+          }).catch(err => showErr(err.message || err));
         };
   
         targetInput.addEventListener('input', ()=>{
