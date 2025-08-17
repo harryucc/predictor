@@ -42,27 +42,63 @@
         const selectionNote = Q('selectionNote');
         const resultsEl = Q('results');
         const histCanvas = Q('histogram');
+        const subjectListEl = Q('subjectList');
+        const subjectLetters = Q('subjectLetters');
+        const schoolListEl = Q('schoolList');
+        const schoolLetters = Q('schoolLetters');
 
-        let subjectOptions = [];
-        fetch('subjects.json').then(r=>r.json()).then(list=>{
-          subjectOptions = list;
-          const dl = document.getElementById('subjectList');
-          list.forEach(name=>{
+        // Firebase setup
+        const firebaseConfig = {
+          apiKey: "YOUR_API_KEY",
+          authDomain: "lcpredic.firebaseapp.com",
+          projectId: "lcpredic"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Datalist helpers
+        const renderOptions = (dl, opts) => {
+          dl.innerHTML = '';
+          opts.forEach(name => {
             const opt = document.createElement('option');
             opt.value = name;
             dl.appendChild(opt);
           });
+        };
+        const initLetterFilter = (container, allOpts, dl) => {
+          const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+          container.innerHTML = '';
+          const setActive = (btn) => {
+            Array.from(container.querySelectorAll('button')).forEach(b => b.classList.toggle('active', b === btn));
+          };
+          const makeBtn = (label, filterFn) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = label;
+            btn.onclick = () => {
+              renderOptions(dl, filterFn());
+              setActive(btn);
+            };
+            container.appendChild(btn);
+            return btn;
+          };
+          const allBtn = makeBtn('All', () => allOpts);
+          setActive(allBtn);
+          letters.forEach(l => makeBtn(l, () => allOpts.filter(n => n.toUpperCase().startsWith(l))));
+        };
+
+        let subjectOptions = [];
+        fetch('subjects.json').then(r=>r.json()).then(list=>{
+          subjectOptions = list;
+          renderOptions(subjectListEl, list);
+          initLetterFilter(subjectLetters, list, subjectListEl);
         });
 
         let schoolOptions = [];
         fetch('schools.json').then(r=>r.json()).then(list=>{
           schoolOptions = list;
-          const dl = document.getElementById('schoolList');
-          list.forEach(name=>{
-            const opt = document.createElement('option');
-            opt.value = name;
-            dl.appendChild(opt);
-          });
+          renderOptions(schoolListEl, list);
+          initLetterFilter(schoolLetters, list, schoolListEl);
         });
 
         // Optional collections (may be empty on DOMContentLoaded)
@@ -98,11 +134,20 @@
           }
           calculateAndRender();
           const school = schoolInput.value.trim();
-          subjects.forEach(s=>{
-            const levelStr = s.isMaths ? 'Maths Higher' : s.level;
-            const probsStr = s.probs.map(p=>p.toFixed(2)).join(', ');
-            console.log(`${s.name}, ${levelStr}, ${probsStr}, School: ${school}`);
-          });
+          const payload = {
+            school,
+            target: Number(targetInput.value),
+            subjects: subjects.map(s => ({
+              name: s.name,
+              level: s.level,
+              isMaths: s.isMaths,
+              probs: s.probs
+            })),
+            timestamp: new Date().toISOString()
+          };
+          db.collection('submissions').add(payload).then(()=>{
+            console.log('Saved submission');
+          }).catch(err=> showErr(err.message || err));
         };
   
         targetInput.addEventListener('input', ()=>{
