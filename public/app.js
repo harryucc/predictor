@@ -30,7 +30,7 @@
         const remainingLabel = Q('remainingLabel');
         const remainingBar = Q('remainingBar');
         const subjectCard = Q('subjectCard');
-        const kpDisplay = Q('keypadDisplay');
+        const probInput = Q('probInput');
         const prevBtn = Q('prevBtn');
         const nextBtn = Q('nextBtn');
         const addBtn = Q('addBtn');
@@ -38,14 +38,35 @@
         const clearSubject = Q('clearSubject');
         const fillRemaining = Q('fillRemaining');
         const targetInput = Q('target');
+        const schoolInput = Q('school');
         const selectionNote = Q('selectionNote');
         const resultsEl = Q('results');
         const histCanvas = Q('histogram');
-  
+
+        let subjectOptions = [];
+        fetch('subjects.json').then(r=>r.json()).then(list=>{
+          subjectOptions = list;
+          const dl = document.getElementById('subjectList');
+          list.forEach(name=>{
+            const opt = document.createElement('option');
+            opt.value = name;
+            dl.appendChild(opt);
+          });
+        });
+
+        let schoolOptions = [];
+        fetch('schools.json').then(r=>r.json()).then(list=>{
+          schoolOptions = list;
+          const dl = document.getElementById('schoolList');
+          list.forEach(name=>{
+            const opt = document.createElement('option');
+            opt.value = name;
+            dl.appendChild(opt);
+          });
+        });
+
         // Optional collections (may be empty on DOMContentLoaded)
         const pctButtons = Array.from(document.querySelectorAll('.pct'));
-        const kpButtons  = Array.from(document.querySelectorAll('.kp'));
-        const quickBtns  = Array.from(document.querySelectorAll('.quick'));
   
         /* ====== Data & Constants ====== */
         const pointsHigher = [100,88,77,66,56,46,37,0];
@@ -63,13 +84,26 @@
         let mathsIndex = null;
         let targetDebounce = null;
         let histChart = null;
-        let kpBuffer = "";
   
         /* ====== UI Wiring ====== */
         prevBtn.onclick = ()=> { if (current>0){ saveFromUI(); current--; renderWizard(); } };
         nextBtn.onclick = ()=> { if (current<subjects.length-1){ saveFromUI(); current++; renderWizard(); } };
         addBtn .onclick = ()=> { saveFromUI(); subjects.push({name:"", level:"Higher", isMaths:false, probs:Array(8).fill(0)}); stepTotal.textContent=subjects.length; current=subjects.length-1; renderWizard(); };
-        finishBtn.onclick = ()=> { saveFromUI(); calculateAndRender(); };
+        finishBtn.onclick = ()=> {
+          saveFromUI();
+          if (!targetInput.value.trim()) {
+            alert('Please enter target points.');
+            targetInput.focus();
+            return;
+          }
+          calculateAndRender();
+          const school = schoolInput.value.trim();
+          subjects.forEach(s=>{
+            const levelStr = s.isMaths ? 'Maths Higher' : s.level;
+            const probsStr = s.probs.map(p=>p.toFixed(2)).join(', ');
+            console.log(`${s.name}, ${levelStr}, ${probsStr}, School: ${school}`);
+          });
+        };
   
         targetInput.addEventListener('input', ()=>{
           if (targetDebounce) clearTimeout(targetDebounce);
@@ -77,7 +111,7 @@
         });
   
         clearSubject.onclick = ()=>{
-          kpBuffer=""; kpDisplay.value="";
+          probInput.value="";
           subjects[current].probs = Array(8).fill(0);
           renderWizard();
         };
@@ -96,23 +130,14 @@
             setGradeValue(Number(btn.dataset.p)/100);
           });
         });
-  
-        // Keypad
-        kpButtons.forEach(btn=>{
-          btn.onclick = ()=> { kpBuffer += btn.textContent; kpDisplay.value = kpBuffer; };
-        });
-        Q('kpBack').onclick = ()=>{ kpBuffer = kpBuffer.slice(0,-1); kpDisplay.value = kpBuffer; };
-        Q('kpClear').onclick = ()=>{ kpBuffer = ""; kpDisplay.value=""; };
-        quickBtns.forEach(btn=>{
-          btn.onclick = ()=> addToGrade(Number(btn.dataset.add)/100);
-        });
+
         Q('kpSet').onclick = ()=>{
-          if (kpBuffer==="") return;
-          const v = Number(kpBuffer);
+          const v = Number(probInput.value);
           if (!Number.isFinite(v)) return;
           const asDec = Math.max(0, Math.min(1, (v>1)? v/100 : v));
           setGradeValue(asDec);
         };
+        probInput.addEventListener('keydown', e=>{ if(e.key==='Enter') Q('kpSet').click(); });
   
         /* ====== Render Wizard ====== */
         function renderWizard(){
@@ -145,20 +170,31 @@
           };
   
           // name/level
-          subName.oninput = ()=> { subjects[current].name = subName.value.trim(); };
+          subName.oninput = ()=> {
+            const val = subName.value.trim();
+            subjects[current].name = val;
+            if (subjectOptions.length && !subjectOptions.includes(val)) {
+              subName.setCustomValidity('Choose a subject from the list');
+            } else {
+              subName.setCustomValidity('');
+            }
+          };
           subLevel.onchange = ()=> { subjects[current].level = subLevel.value; };
   
           // Grade pills
           gradePills.innerHTML = "";
-          for (let i=0;i<8;i++){
-            const pct = (s.probs[i]*100)||0;
-            const pill = document.createElement('button');
-            pill.type = 'button';
-            pill.className = 'grade-pill' + (i===activeGrade ? ' active':'');
-            pill.innerHTML = `${H_LABELS[i]}<small>${pct.toFixed(1)}%</small>`;
-            pill.onclick = ()=> { activeGrade = i; renderWizard(); };
-            gradePills.appendChild(pill);
-          }
+            for (let i=0;i<8;i++){
+              const pct = (s.probs[i]*100)||0;
+              const pill = document.createElement('button');
+              pill.type = 'button';
+              pill.className = 'grade-pill' + (i===activeGrade ? ' active':'');
+              pill.innerHTML = `${H_LABELS[i]}<small>${pct.toFixed(1)}%</small>`;
+              const shade = 90 - s.probs[i]*40;
+              pill.style.backgroundColor = `hsl(120, 60%, ${shade}%)`;
+              if (shade < 60) pill.style.color = '#fff';
+              pill.onclick = ()=> { activeGrade = i; renderWizard(); };
+              gradePills.appendChild(pill);
+            }
   
           // Remaining
           const totalPct = s.probs.reduce((a,b)=>a+b,0)*100;
@@ -170,7 +206,15 @@
   
         function saveFromUI(){
           const s = subjects[current];
-          s.name = subName.value.trim() || `Subject ${current+1}`;
+          const val = subName.value.trim();
+          if (subjectOptions.length && !subjectOptions.includes(val)) {
+            subName.setCustomValidity('Choose a subject from the list');
+            subName.reportValidity();
+            s.name = `Subject ${current+1}`;
+          } else {
+            subName.setCustomValidity('');
+            s.name = val || `Subject ${current+1}`;
+          }
           s.level = subLevel.value;
         }
   
@@ -180,16 +224,7 @@
           const sumOthers = s.probs.reduce((a,b,i)=> i===activeGrade ? a : a+b, 0);
           const maxAllowed = Math.max(0, 1 - sumOthers);
           s.probs[activeGrade] = Math.min(Math.max(0, asDec), maxAllowed);
-          kpBuffer = ""; kpDisplay.value = "";
-          renderWizard();
-        }
-        function addToGrade(addDec){
-          const s = subjects[current];
-          const total = s.probs.reduce((a,b)=>a+b,0);
-          if (total >= 1 - 1e-9) return;
-          const sumOthers = s.probs.reduce((a,b,i)=> i===activeGrade ? a : a+b, 0);
-          const maxAllowed = Math.max(0, 1 - sumOthers);
-          s.probs[activeGrade] = Math.min(maxAllowed, s.probs[activeGrade] + addDec);
+          probInput.value = "";
           renderWizard();
         }
   
