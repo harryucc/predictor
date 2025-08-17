@@ -1,0 +1,9 @@
+{
+  "name": "predictor",
+  "version": "1.0.0",
+  "description": "leaving cert prediction software",
+  "private": true,
+  "scripts": {
+    "test": "echo \"No tests specified\" && exit 0"
+  }
+}

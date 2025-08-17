@@ -41,7 +41,6 @@
         const selectionNote = Q('selectionNote');
         const resultsEl = Q('results');
         const histCanvas = Q('histogram');
-        const pctRemaining = Q('pctRemaining');
   
         // Optional collections (may be empty on DOMContentLoaded)
         const pctButtons = Array.from(document.querySelectorAll('.pct'));
@@ -97,12 +96,6 @@
             setGradeValue(Number(btn.dataset.p)/100);
           });
         });
-        pctRemaining.addEventListener('click', ()=>{
-          const s = subjects[current];
-          const sumOthers = s.probs.reduce((a,b,i)=> i===activeGrade ? a : a+b, 0);
-          const remaining = Math.max(0, 1 - sumOthers);
-          setGradeValue(remaining);
-        });
   
         // Keypad
         kpButtons.forEach(btn=>{
@@ -127,7 +120,8 @@
           stepTotal.textContent = String(subjects.length);
   
           const s = subjects[current];
-          subName.value = s.name || `Subject ${current+1}`;
+          subName.value = s.name;
+          subName.placeholder = `Enter subject ${current+1}`;
           subLevel.value = s.level;
   
           // Maths single-select
