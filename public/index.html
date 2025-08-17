@@ -76,15 +76,20 @@
       <!-- Main content -->
       <main class="col-12 col-lg-8">
         <div class="py-3">
-          <header class="mb-3">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-              <h1 class="h4 mb-0">Points Probability Calculator</h1>
+          <header class="mb-3 text-center">
+            <h1 class="h4 mb-3">Points Probability Calculator</h1>
+            <div class="d-flex flex-column align-items-center gap-2">
               <div>
-                <label class="form-label me-2 mb-0">Target Points</label>
-                <input id="target" type="number" class="form-control d-inline-block" style="width:160px" placeholder="e.g. 500">
+                <label class="form-label mb-0">Target Points</label>
+                <input id="target" type="number" class="form-control mx-auto" style="max-width:200px" placeholder="e.g. 500" required>
+              </div>
+              <div>
+                <label class="form-label mb-0">School</label>
+                <input id="school" class="form-control mx-auto" style="max-width:300px" list="schoolList" placeholder="Type your school">
+                <datalist id="schoolList"></datalist>
               </div>
             </div>
-            <p class="text-muted mt-2 mb-0">Tap a grade (H1–H8), then set its probability with the keypad or the % grid. The bar fills to 100%. Maths bonus applies only for <b>Higher</b>, and only one subject can be Maths.</p>
+            <p class="text-muted mt-2 mb-0">Tap a grade (H1–H8), then set its probability with the % grid or enter it manually below. The bar fills to 100%. Maths bonus applies only for <b>Higher</b>, and only one subject can be Maths.</p>
           </header>
 
           <!-- Wizard Card -->
@@ -98,13 +103,14 @@
             </div>
             <div class="card-body">
               <div class="row g-4">
-                <!-- Left: Subject meta + grades -->
-                <div class="col-12 col-lg-7">
+                <!-- Subject meta + grades -->
+                <div class="col-12">
                   <div id="subjectCard" class="p-3 rounded" style="background:#fff; border:1px solid var(--border);">
                     <div class="row g-3">
                       <div class="col-12 col-md-7">
                         <label class="form-label">Subject Name</label>
-                        <input id="subName" class="form-control" placeholder="">
+                        <input id="subName" class="form-control" list="subjectList" placeholder="">
+                        <datalist id="subjectList"></datalist>
                       </div>
                       <div class="col-6 col-md-3">
                         <label class="form-label">Level</label>
@@ -148,12 +154,12 @@
                   </div>
                 </div>
 
-                <!-- Right: Keypad + Percent grid -->
-                <div class="col-12 col-lg-5">
+                <!-- Probability controls -->
+                <div class="col-12">
                   <label class="form-label">Set probability for the selected grade</label>
 
                   <!-- Percent grid -->
-                  <div class="mb-2">
+                  <div class="mb-3">
                     <div class="d-grid gap-2" style="grid-template-columns: repeat(3, 1fr); display:grid;">
                       <button class="btn btn-outline-secondary pct" data-p="80">80%</button>
                       <button class="btn btn-outline-secondary pct" data-p="90">90%</button>
@@ -169,34 +175,12 @@
                     </div>
                   </div>
 
-                  <div class="text-muted small mb-1">Or type with the keypad (e.g. 70 or 0.7) and press Set.</div>
-                  <div class="input-group mb-2">
-                    <span class="input-group-text">Value</span>
-                    <input id="keypadDisplay" class="form-control" placeholder="e.g. 70 or 0.7" readonly>
-                    <button id="kpBack" class="btn btn-outline-secondary" type="button">⌫</button>
-                    <button id="kpClear" class="btn btn-outline-secondary" type="button">C</button>
-                  </div>
-                  <div class="keypad d-grid gap-2" style="grid-template-columns: repeat(3, 1fr);">
-                    <button class="btn btn-outline-secondary kp">7</button>
-                    <button class="btn btn-outline-secondary kp">8</button>
-                    <button class="btn btn-outline-secondary kp">9</button>
-                    <button class="btn btn-outline-secondary kp">4</button>
-                    <button class="btn btn-outline-secondary kp">5</button>
-                    <button class="btn btn-outline-secondary kp">6</button>
-                    <button class="btn btn-outline-secondary kp">1</button>
-                    <button class="btn btn-outline-secondary kp">2</button>
-                    <button class="btn btn-outline-secondary kp">3</button>
-                    <button class="btn btn-outline-secondary kp">0</button>
-                    <button class="btn btn-outline-secondary kp">.</button>
-                    <button class="btn btn-outline-secondary kp">00</button>
-                  </div>
-                  <div class="d-grid gap-2 mt-2" style="grid-template-columns: repeat(3, 1fr); display:grid;">
-                    <button class="btn btn-outline-secondary quick" data-add="5">+5%</button>
-                    <button class="btn btn-outline-secondary quick" data-add="10">+10%</button>
-                    <button class="btn btn-outline-secondary quick" data-add="25">+25%</button>
-                  </div>
-                  <div class="d-grid gap-2 mt-3">
-                    <button id="kpSet" class="btn btn-main">Set Value for Selected Grade</button>
+                  <div class="mb-3">
+                    <label for="probInput" class="form-label">Manual Probability</label>
+                    <div class="input-group">
+                      <input id="probInput" class="form-control" placeholder="e.g. 70 or 0.7">
+                      <button id="kpSet" class="btn btn-main" type="button">Set Value for Selected Grade</button>
+                    </div>
                   </div>
                 </div>
               </div>
