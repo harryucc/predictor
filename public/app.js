@@ -1,0 +1,349 @@
+(function(){
+    // Simple error trap to avoid blank screen
+    const showErr = (msg) => {
+      const el = document.getElementById('errOverlay');
+      const tx = document.getElementById('errText');
+      if (el && tx) { tx.textContent = String(msg || 'Unknown error'); el.style.display = 'block'; }
+      console.error(msg);
+    };
+  
+    window.addEventListener('error', (e)=> showErr(e.message || e.error));
+    window.addEventListener('unhandledrejection', (e)=> showErr(e.reason || 'Unhandled promise rejection'));
+  
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        /* ====== Grab DOM safely ====== */
+        const Q = (id) => {
+          const el = document.getElementById(id);
+          if (!el) throw new Error(`Missing element: #${id}`);
+          return el;
+        };
+  
+        // Required elements
+        const stepNow = Q('stepNow');
+        const stepTotal = Q('stepTotal');
+        const subName = Q('subName');
+        const subLevel = Q('subLevel');
+        const subMaths = Q('subMaths');
+        const mathsLockHint = Q('mathsLockHint');
+        const gradePills = Q('gradePills');
+        const remainingLabel = Q('remainingLabel');
+        const remainingBar = Q('remainingBar');
+        const subjectCard = Q('subjectCard');
+        const kpDisplay = Q('keypadDisplay');
+        const prevBtn = Q('prevBtn');
+        const nextBtn = Q('nextBtn');
+        const addBtn = Q('addBtn');
+        const finishBtn = Q('finishBtn');
+        const clearSubject = Q('clearSubject');
+        const fillRemaining = Q('fillRemaining');
+        const targetInput = Q('target');
+        const selectionNote = Q('selectionNote');
+        const resultsEl = Q('results');
+        const histCanvas = Q('histogram');
+        const pctRemaining = Q('pctRemaining');
+  
+        // Optional collections (may be empty on DOMContentLoaded)
+        const pctButtons = Array.from(document.querySelectorAll('.pct'));
+        const kpButtons  = Array.from(document.querySelectorAll('.kp'));
+        const quickBtns  = Array.from(document.querySelectorAll('.quick'));
+  
+        /* ====== Data & Constants ====== */
+        const pointsHigher = [100,88,77,66,56,46,37,0];
+        const pointsMathsHigher = [125,113,102,91,81,71,37,0];
+        const pointsOrdinary = [56,46,37,28,20,12,0,0];
+        const H_LABELS = ["H1","H2","H3","H4","H5","H6","H7","H8"];
+  
+        const getPoints = (g, isMaths, level) =>
+          level === 'Ordinary' ? pointsOrdinary[g] : (isMaths ? pointsMathsHigher[g] : pointsHigher[g]);
+  
+        // Model
+        let subjects = Array.from({length:6}, ()=>({name:"", level:"Higher", isMaths:false, probs:Array(8).fill(0)}));
+        let current = 0;
+        let activeGrade = 0;
+        let mathsIndex = null;
+        let targetDebounce = null;
+        let histChart = null;
+        let kpBuffer = "";
+  
+        /* ====== UI Wiring ====== */
+        prevBtn.onclick = ()=> { if (current>0){ saveFromUI(); current--; renderWizard(); } };
+        nextBtn.onclick = ()=> { if (current<subjects.length-1){ saveFromUI(); current++; renderWizard(); } };
+        addBtn .onclick = ()=> { saveFromUI(); subjects.push({name:"", level:"Higher", isMaths:false, probs:Array(8).fill(0)}); stepTotal.textContent=subjects.length; current=subjects.length-1; renderWizard(); };
+        finishBtn.onclick = ()=> { saveFromUI(); calculateAndRender(); };
+  
+        targetInput.addEventListener('input', ()=>{
+          if (targetDebounce) clearTimeout(targetDebounce);
+          targetDebounce = setTimeout(calculateAndRender, 800);
+        });
+  
+        clearSubject.onclick = ()=>{
+          kpBuffer=""; kpDisplay.value="";
+          subjects[current].probs = Array(8).fill(0);
+          renderWizard();
+        };
+        fillRemaining.onclick = ()=>{
+          const s = subjects[current];
+          const sumOthers = s.probs.reduce((a,b,i)=> i===activeGrade ? a : a+b, 0);
+          const remaining = Math.max(0, 1 - sumOthers);
+          s.probs[activeGrade] = remaining;
+          renderWizard();
+        };
+  
+        // Percent grid
+        pctButtons.forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            if (!btn.dataset.p) return;
+            setGradeValue(Number(btn.dataset.p)/100);
+          });
+        });
+        pctRemaining.addEventListener('click', ()=>{
+          const s = subjects[current];
+          const sumOthers = s.probs.reduce((a,b,i)=> i===activeGrade ? a : a+b, 0);
+          const remaining = Math.max(0, 1 - sumOthers);
+          setGradeValue(remaining);
+        });
+  
+        // Keypad
+        kpButtons.forEach(btn=>{
+          btn.onclick = ()=> { kpBuffer += btn.textContent; kpDisplay.value = kpBuffer; };
+        });
+        Q('kpBack').onclick = ()=>{ kpBuffer = kpBuffer.slice(0,-1); kpDisplay.value = kpBuffer; };
+        Q('kpClear').onclick = ()=>{ kpBuffer = ""; kpDisplay.value=""; };
+        quickBtns.forEach(btn=>{
+          btn.onclick = ()=> addToGrade(Number(btn.dataset.add)/100);
+        });
+        Q('kpSet').onclick = ()=>{
+          if (kpBuffer==="") return;
+          const v = Number(kpBuffer);
+          if (!Number.isFinite(v)) return;
+          const asDec = Math.max(0, Math.min(1, (v>1)? v/100 : v));
+          setGradeValue(asDec);
+        };
+  
+        /* ====== Render Wizard ====== */
+        function renderWizard(){
+          stepNow.textContent = String(current+1);
+          stepTotal.textContent = String(subjects.length);
+  
+          const s = subjects[current];
+          subName.value = s.name || `Subject ${current+1}`;
+          subLevel.value = s.level;
+  
+          // Maths single-select
+          const idx = subjects.findIndex(x => x.isMaths);
+          mathsIndex = (idx >= 0) ? idx : null;
+  
+          subMaths.checked = !!s.isMaths;
+          const locked = mathsIndex !== null && mathsIndex !== current;
+          subMaths.disabled = locked;
+          mathsLockHint.classList.toggle('d-none', !locked);
+  
+          subMaths.onchange = ()=>{
+            if (subMaths.checked){
+              if (mathsIndex !== null && mathsIndex !== current) subjects[mathsIndex].isMaths = false;
+              subjects[current].isMaths = true; mathsIndex = current;
+            } else {
+              if (mathsIndex === current) mathsIndex = null;
+              subjects[current].isMaths = false;
+            }
+            renderWizard();
+          };
+  
+          // name/level
+          subName.oninput = ()=> { subjects[current].name = subName.value.trim(); };
+          subLevel.onchange = ()=> { subjects[current].level = subLevel.value; };
+  
+          // Grade pills
+          gradePills.innerHTML = "";
+          for (let i=0;i<8;i++){
+            const pct = (s.probs[i]*100)||0;
+            const pill = document.createElement('button');
+            pill.type = 'button';
+            pill.className = 'grade-pill' + (i===activeGrade ? ' active':'');
+            pill.innerHTML = `${H_LABELS[i]}<small>${pct.toFixed(1)}%</small>`;
+            pill.onclick = ()=> { activeGrade = i; renderWizard(); };
+            gradePills.appendChild(pill);
+          }
+  
+          // Remaining
+          const totalPct = s.probs.reduce((a,b)=>a+b,0)*100;
+          const remaining = 100 - totalPct;
+          remainingLabel.textContent = `${remaining.toFixed(1)}%`;
+          remainingBar.style.width = `${Math.min(100, Math.max(0, totalPct))}%`;
+          subjectCard.classList.toggle('row-complete', Math.abs(remaining) < 1e-9);
+        }
+  
+        function saveFromUI(){
+          const s = subjects[current];
+          s.name = subName.value.trim() || `Subject ${current+1}`;
+          s.level = subLevel.value;
+        }
+  
+        /* ====== Input helpers ====== */
+        function setGradeValue(asDec){
+          const s = subjects[current];
+          const sumOthers = s.probs.reduce((a,b,i)=> i===activeGrade ? a : a+b, 0);
+          const maxAllowed = Math.max(0, 1 - sumOthers);
+          s.probs[activeGrade] = Math.min(Math.max(0, asDec), maxAllowed);
+          kpBuffer = ""; kpDisplay.value = "";
+          renderWizard();
+        }
+        function addToGrade(addDec){
+          const s = subjects[current];
+          const total = s.probs.reduce((a,b)=>a+b,0);
+          if (total >= 1 - 1e-9) return;
+          const sumOthers = s.probs.reduce((a,b,i)=> i===activeGrade ? a : a+b, 0);
+          const maxAllowed = Math.max(0, 1 - sumOthers);
+          s.probs[activeGrade] = Math.min(maxAllowed, s.probs[activeGrade] + addDec);
+          renderWizard();
+        }
+  
+        /* ====== Prepare subjects for calc ====== */
+        function collectForCalc(){
+          return subjects.map((s,idx)=>{
+            const rawSum = s.probs.reduce((a,b)=>a+b,0);
+            const probs = rawSum>0 ? s.probs.map(p=>p/rawSum) : Array(8).fill(0); // skip empty later
+            let expected=0;
+            for (let g=0; g<8; g++) expected += probs[g]*getPoints(g, s.isMaths, s.level);
+            return { name: s.name || `Subject ${idx+1}`, level: s.level, isMaths: s.isMaths, probs, expected, rawSum };
+          });
+        }
+        function bestSix(list){
+          if (list.length<=6) return {selected:list, dropped:[]};
+          const sorted = [...list].sort((a,b)=>b.expected-a.expected);
+          return {selected: sorted.slice(0,6), dropped: sorted.slice(6)};
+        }
+  
+        /* ====== Ultra-fast DP over points ====== */
+        function dpDistribution(subjs){
+          if (subjs.length === 0) return { points:[0], probs:[1] };
+          const maxPerSubj = 125;
+          const maxSum = subjs.length * maxPerSubj;
+  
+          let dp = new Float64Array(maxSum + 1);
+          dp[0] = 1;
+  
+          for (const subj of subjs){
+            const pts = [];
+            for (let g=0; g<8; g++){
+              const p = subj.probs[g];
+              if (p > 0) pts.push([ getPoints(g, subj.isMaths, subj.level), p ]);
+            }
+            if (pts.length === 0) continue;
+  
+            const next = new Float64Array(maxSum + 1);
+            for (let s=0; s<=maxSum; s++){
+              const base = dp[s];
+              if (base === 0) continue;
+              for (const [score, prob] of pts){
+                next[s + score] += base * prob;
+              }
+            }
+            dp = next;
+          }
+  
+          const points = [];
+          const probs = [];
+          let total = 0;
+          for (let s=0; s<=maxSum; s++){
+            const v = dp[s];
+            if (v > 0){ points.push(s); probs.push(v); total += v; }
+          }
+          if (total > 0){ for (let i=0;i<probs.length;i++) probs[i] /= total; }
+          return { points, probs };
+        }
+  
+        function computeStats({points, probs}){
+          let mean=0, variance=0;
+          for (let i=0;i<points.length;i++) mean += points[i]*probs[i];
+          for (let i=0;i<points.length;i++){ const d=points[i]-mean; variance += probs[i]*d*d; }
+          return {mean, stdDev: Math.sqrt(variance)};
+        }
+        function probabilityGE(dist, threshold){
+          if (!Number.isFinite(threshold)) return null;
+          let p=0;
+          for (let i=0;i<dist.points.length;i++) if (dist.points[i] >= threshold) p += dist.probs[i];
+          return p;
+        }
+  
+        /* ====== Chart ====== */
+        function drawHistogram(dist, mean, stdDev){
+          const binWidth=6;
+          const bins=new Map();
+          for (let i=0;i<dist.points.length;i++){
+            const b = Math.round(dist.points[i]/binWidth)*binWidth;
+            bins.set(b, (bins.get(b)||0)+dist.probs[i]);
+          }
+          const labelsAll = Array.from(bins.keys()).sort((a,b)=>a-b);
+          let lower=labelsAll[0], upper=labelsAll[labelsAll.length-1];
+          if (Number.isFinite(stdDev) && stdDev>0){
+            lower = Math.floor((mean-3*stdDev)/binWidth)*binWidth;
+            upper = Math.ceil((mean+3*stdDev)/binWidth)*binWidth;
+          }
+          const labels = labelsAll.filter(v=>v>=lower && v<=upper);
+          const data = labels.map(k=>bins.get(k)||0);
+  
+          const ctx = histCanvas.getContext('2d');
+          if (histChart) histChart.destroy();
+          const fill = getComputedStyle(document.documentElement).getPropertyValue('--accent-green').trim();
+          const stroke = getComputedStyle(document.documentElement).getPropertyValue('--accent-green-border').trim();
+  
+          histChart = new Chart(ctx,{
+            type:'bar',
+            data:{ labels: labels.map(String), datasets:[{ data, backgroundColor: fill, borderColor: stroke, borderWidth:1 }]},
+            options:{
+              animation:false,
+              responsive:true, maintainAspectRatio:false,
+              scales:{ x:{ grid:{color:'#edf0f2'}}, y:{ beginAtZero:true, grid:{color:'#edf0f2'}}},
+              plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>` ${(c.raw*100).toFixed(2)}%` } } }
+            }
+          });
+        }
+  
+        /* ====== Calculate & Render ====== */
+        function calculateAndRender(){
+          const prepared = collectForCalc().filter(s => s.rawSum > 0);
+          if (prepared.length === 0){
+            selectionNote.textContent = 'No subjects yet — add at least one.';
+            resultsEl.textContent = 'Awaiting input…';
+            if (histChart) histChart.destroy();
+            return;
+          }
+  
+          const {selected, dropped} = bestSix(prepared);
+          selectionNote.innerHTML = `
+            Using top ${selected.length} subject(s):
+            ${selected.map(s=>`<span class="badge-chip">${s.name} (${s.expected.toFixed(1)})</span>`).join("")}
+            ${dropped.length? `<div class="mt-1">Ignored: ${dropped.map(s=>`<span class="badge-chip">${s.name} (${s.expected.toFixed(1)})</span>`).join("")}</div>` : ""}
+          `;
+  
+          const dist = dpDistribution(selected);
+          const {mean, stdDev} = computeStats(dist);
+          const targetVal = Number(targetInput.value);
+          const pGE = Number.isFinite(targetVal) ? probabilityGE(dist, targetVal) : null;
+  
+          resultsEl.innerHTML = `
+            <div class="d-flex flex-column gap-1">
+              <div>Weighted Mean: <b>${mean.toFixed(2)}</b></div>
+              <div>Std Dev: <b>${stdDev.toFixed(2)}</b></div>
+              <div>${pGE===null ? `<span class="text-muted">Enter a target to see your probability.</span>` : `P(Points ≥ ${targetVal}) = <b>${(pGE*100).toFixed(2)}%</b>`}</div>
+            </div>
+          `;
+          drawHistogram(dist, mean, stdDev);
+        }
+  
+        // expose for debug if you like
+        window._calc = calculateAndRender;
+  
+        // Initial render
+        renderWizard();
+        // Don’t auto-calc on load; user hits Finish
+        // calculateAndRender();
+  
+      } catch (err){
+        showErr(err && err.message ? err.message : err);
+      }
+    });
+  })();
+  

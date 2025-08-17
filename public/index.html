@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- TEMP: comment out AdSense while debugging
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7429797559685152" crossorigin="anonymous"></script>
+  -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Points Probability Calculator — Wizard</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous"/>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root{
+      --bg:#f5f6f7; --card:#fff; --border:#e5e7eb; --text:#333; --muted:#6c757d;
+      --accent-green:#dff3e4; --accent-green-border:#9bd3ae; --accent:#adb5bd;
+    }
+    body{background:var(--bg); color:var(--text);}
+    .card{border-color:var(--border); box-shadow:0 4px 14px rgba(0,0,0,.04);}
+    .btn-main{background:#6c757d; color:#fff; border:none;}
+    .btn-main:hover{background:#5c636a;}
+    .step-badge{background:#eef1f4; border:1px solid #e5e7eb; border-radius:999px; padding:.25rem .6rem; font-weight:600; color:#495057;}
+    .row-complete{background:var(--accent-green) !important;}
+    .grade-pill{
+      border:1px solid var(--border); border-radius:10px; padding:.5rem .7rem; cursor:pointer;
+      background:#fff; font-weight:700; min-width:72px; text-align:center;
+    }
+    .grade-pill small{display:block; font-weight:500; color:#666;}
+    .grade-pill.active{outline:2px solid var(--accent-green-border);}
+    .keypad .btn{min-width:64px; min-height:48px; font-weight:600;}
+    .progress{height:.7rem;}
+    .badge-chip{background:#f1f3f5; color:#495057; border:1px solid #e9ecef; border-radius:9999px; padding:0 .5rem; margin:.1rem; display:inline-block;}
+    #histogram{max-height:420px;}
+    .navbar-light{background:#ffffff; border-bottom:1px solid var(--border);}
+    .ad-box{
+      background:#ffffff; border:1px solid var(--border); border-radius:.5rem;
+      min-height:600px; position:sticky; top:72px; display:flex; align-items:center; justify-content:center;
+      color:#6c757d; font-weight:600;
+    }
+    .ad-box .ad-inner{width:100%; height:100%; display:flex; align-items:center; justify-content:center; padding:8px;}
+    @media (max-width: 991.98px){
+      .ad-box{position:relative; top:auto; min-height:120px; margin-bottom:1rem;}
+    }
+    /* Tiny error overlay */
+    #errOverlay{position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#fee;border-top:1px solid #f5c2c7;color:#842029;padding:.5rem 1rem;font-size:.9rem;display:none}
+    #errOverlay pre{white-space:pre-wrap;margin:0}
+  </style>
+</head>
+<body>
+
+  <div id="errOverlay"><strong>Script error:</strong> <pre id="errText"></pre></div>
+
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-light sticky-top">
+    <div class="container-fluid">
+      <a class="navbar-brand fw-semibold" href="#" style="color:#333;">LC Points</a>
+      <div class="d-flex align-items-center gap-3">
+        <a class="text-muted text-decoration-none" href="#">About</a>
+        <a class="text-muted text-decoration-none" href="#">Privacy</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- LAYOUT: side ads + main -->
+  <div class="container-fluid">
+    <div class="row g-3">
+      <!-- Left ad (desktop) -->
+      <aside class="col-lg-2 d-none d-lg-block">
+        <div class="ad-box"><div class="ad-inner"><span>Ad Banner</span></div></div>
+      </aside>
+
+      <!-- Main content -->
+      <main class="col-12 col-lg-8">
+        <div class="py-3">
+          <header class="mb-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <h1 class="h4 mb-0">Points Probability Calculator</h1>
+              <div>
+                <label class="form-label me-2 mb-0">Target Points</label>
+                <input id="target" type="number" class="form-control d-inline-block" style="width:160px" placeholder="e.g. 500">
+              </div>
+            </div>
+            <p class="text-muted mt-2 mb-0">Tap a grade (H1–H8), then set its probability with the keypad or the % grid. The bar fills to 100%. Maths bonus applies only for <b>Higher</b>, and only one subject can be Maths.</p>
+          </header>
+
+          <!-- Wizard Card -->
+          <div id="wizard" class="card mb-4">
+            <div class="card-header bg-white d-flex align-items-center justify-content-between">
+              <div>
+                <span class="step-badge"><span id="stepNow">1</span>/<span id="stepTotal">6</span></span>
+                <span class="ms-2 fw-semibold">Subject Setup</span>
+              </div>
+              <div class="text-muted small">Complete each subject to 100%.</div>
+            </div>
+            <div class="card-body">
+              <div class="row g-4">
+                <!-- Left: Subject meta + grades -->
+                <div class="col-12 col-lg-7">
+                  <div id="subjectCard" class="p-3 rounded" style="background:#fff; border:1px solid var(--border);">
+                    <div class="row g-3">
+                      <div class="col-12 col-md-7">
+                        <label class="form-label">Subject Name</label>
+                        <input id="subName" class="form-control" placeholder="e.g. Maths, English">
+                      </div>
+                      <div class="col-6 col-md-3">
+                        <label class="form-label">Level</label>
+                        <select id="subLevel" class="form-select">
+                          <option value="Higher" selected>Higher</option>
+                          <option value="Ordinary">Ordinary</option>
+                        </select>
+                      </div>
+                      <div class="col-6 col-md-2 d-flex align-items-end">
+                        <div class="form-check">
+                          <input id="subMaths" type="checkbox" class="form-check-input">
+                          <label for="subMaths" class="form-check-label">Maths?</label>
+                          <div id="mathsLockHint" class="form-text d-none">Maths already set for another subject.</div>
+                        </div>
+                      </div>
+
+                      <!-- Grade pills -->
+                      <div class="col-12">
+                        <div id="gradePills" class="d-flex flex-wrap gap-2"></div>
+                      </div>
+
+                      <!-- Remaining meter -->
+                      <div class="col-12">
+                        <div class="d-flex align-items-center justify-content-between">
+                          <div>
+                            <div class="small text-muted mb-1">Remaining</div>
+                            <div id="remainingLabel" class="fw-semibold">100.0%</div>
+                          </div>
+                          <div class="flex-grow-1 mx-3">
+                            <div class="progress">
+                              <div id="remainingBar" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                            </div>
+                          </div>
+                          <div class="d-flex gap-2">
+                            <button id="fillRemaining" class="btn btn-sm btn-outline-secondary">Fill Remaining</button>
+                            <button id="clearSubject" class="btn btn-sm btn-outline-secondary">Clear</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right: Keypad + Percent grid -->
+                <div class="col-12 col-lg-5">
+                  <label class="form-label">Set probability for the selected grade</label>
+
+                  <!-- Percent grid -->
+                  <div class="mb-2">
+                    <div class="d-grid gap-2" style="grid-template-columns: repeat(6, 1fr); display:grid;">
+                      <button class="btn btn-outline-secondary pct" data-p="0">0%</button>
+                      <button class="btn btn-outline-secondary pct" data-p="10">10%</button>
+                      <button class="btn btn-outline-secondary pct" data-p="20">20%</button>
+                      <button class="btn btn-outline-secondary pct" data-p="30">30%</button>
+                      <button class="btn btn-outline-secondary pct" data-p="40">40%</button>
+                      <button class="btn btn-outline-secondary pct" data-p="50">50%</button>
+                      <button class="btn btn-outline-secondary pct" data-p="60">60%</button>
+                      <button class="btn btn-outline-secondary pct" data-p="70">70%</button>
+                      <button class="btn btn-outline-secondary pct" data-p="80">80%</button>
+                      <button class="btn btn-outline-secondary pct" data-p="90">90%</button>
+                      <button class="btn btn-outline-secondary pct" data-p="100">100%</button>
+                      <button id="pctRemaining" class="btn btn-outline-secondary">= Remaining</button>
+                    </div>
+                  </div>
+
+                  <div class="text-muted small mb-1">Or type with the keypad (e.g. 70 or 0.7) and press Set.</div>
+                  <div class="input-group mb-2">
+                    <span class="input-group-text">Value</span>
+                    <input id="keypadDisplay" class="form-control" placeholder="e.g. 70 or 0.7" readonly>
+                    <button id="kpBack" class="btn btn-outline-secondary" type="button">⌫</button>
+                    <button id="kpClear" class="btn btn-outline-secondary" type="button">C</button>
+                  </div>
+                  <div class="keypad d-grid gap-2" style="grid-template-columns: repeat(3, 1fr);">
+                    <button class="btn btn-outline-secondary kp">7</button>
+                    <button class="btn btn-outline-secondary kp">8</button>
+                    <button class="btn btn-outline-secondary kp">9</button>
+                    <button class="btn btn-outline-secondary kp">4</button>
+                    <button class="btn btn-outline-secondary kp">5</button>
+                    <button class="btn btn-outline-secondary kp">6</button>
+                    <button class="btn btn-outline-secondary kp">1</button>
+                    <button class="btn btn-outline-secondary kp">2</button>
+                    <button class="btn btn-outline-secondary kp">3</button>
+                    <button class="btn btn-outline-secondary kp">0</button>
+                    <button class="btn btn-outline-secondary kp">.</button>
+                    <button class="btn btn-outline-secondary kp">00</button>
+                  </div>
+                  <div class="d-grid gap-2 mt-2" style="grid-template-columns: repeat(3, 1fr); display:grid;">
+                    <button class="btn btn-outline-secondary quick" data-add="5">+5%</button>
+                    <button class="btn btn-outline-secondary quick" data-add="10">+10%</button>
+                    <button class="btn btn-outline-secondary quick" data-add="25">+25%</button>
+                  </div>
+                  <div class="d-grid gap-2 mt-3">
+                    <button id="kpSet" class="btn btn-main">Set Value for Selected Grade</button>
+                  </div>
+                </div>
+              </div>
+
+              <hr class="my-4"/>
+
+              <div class="d-flex flex-wrap gap-2 justify-content-between">
+                <div>
+                  <button id="prevBtn" class="btn btn-outline-secondary">&larr; Previous</button>
+                  <button id="nextBtn" class="btn btn-outline-secondary">Next &rarr;</button>
+                  <button id="addBtn" class="btn btn-outline-secondary">+ Add Subject</button>
+                  <span class="ms-2 text-muted small">We’ll use your best 6 subjects when calculating.</span>
+                </div>
+                <div>
+                  <button id="finishBtn" class="btn btn-main">Finish & Calculate</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Selection / Results / Chart -->
+          <div class="card mb-3">
+            <div class="card-body">
+              <div id="selectionNote" class="text-muted">No results yet — complete a few subjects and click <b>Finish & Calculate</b>.</div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12 col-lg-4">
+              <div class="card h-100">
+                <div class="card-header bg-white fw-semibold">Results</div>
+                <div class="card-body">
+                  <div id="results" class="text-muted">Awaiting input…</div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-8">
+              <div class="card h-100">
+                <div class="card-header bg-white fw-semibold">Probability Distribution</div>
+                <div class="card-body">
+                  <canvas id="histogram" height="340"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right ad (desktop) -->
+      <aside class="col-lg-2 d-none d-lg-block">
+        <div class="ad-box"><div class="ad-inner"><span>Ad Banner</span></div></div>
+      </aside>
+
+      <!-- Mobile ad -->
+      <aside class="col-12 d-lg-none">
+        <div class="ad-box"><div class="ad-inner"><span>Ad Banner</span></div></div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <!-- Your app JS (defer so DOM exists) -->
+  <script src="app.js" defer></script>
+</body>
+</html>
