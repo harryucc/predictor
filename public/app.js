@@ -24,8 +24,6 @@
         const stepTotal = Q('stepTotal');
         const subName = Q('subName');
         const subLevel = Q('subLevel');
-        const subMaths = Q('subMaths');
-        const mathsLockHint = Q('mathsLockHint');
         const gradePills = Q('gradePills');
         const remainingLabel = Q('remainingLabel');
         const remainingBar = Q('remainingBar');
@@ -125,22 +123,25 @@
         const pointsOrdinary = [56,46,37,28,20,12,0,0];
         const H_LABELS = ["H1","H2","H3","H4","H5","H6","H7","H8"];
         const O_LABELS = ["O1","O2","O3","O4","O5","O6","O7","O8"];
-  
-        const getPoints = (g, isMaths, level) =>
-          level === 'Ordinary' ? pointsOrdinary[g] : (isMaths ? pointsMathsHigher[g] : pointsHigher[g]);
-  
+
+        const getPoints = (g, name, level) => {
+          if (level === 'Ordinary') return pointsOrdinary[g];
+          const lower = name.trim().toLowerCase();
+          const isMaths = lower === 'mathematics' || lower === 'maths';
+          return isMaths ? pointsMathsHigher[g] : pointsHigher[g];
+        };
+
         // Model
-        let subjects = Array.from({length:6}, ()=>({name:"", level:"Higher", isMaths:false, probs:Array(8).fill(0)}));
+        let subjects = Array.from({length:6}, ()=>({name:"", level:"Higher", probs:Array(8).fill(0)}));
         let current = 0;
         let activeGrade = 0;
-        let mathsIndex = null;
         let targetDebounce = null;
         let histChart = null;
   
         /* ====== UI Wiring ====== */
         prevBtn.onclick = ()=> { if (current>0){ saveFromUI(); current--; renderWizard(); } };
         nextBtn.onclick = ()=> { if (current<subjects.length-1){ saveFromUI(); current++; renderWizard(); } };
-        addBtn .onclick = ()=> { saveFromUI(); subjects.push({name:"", level:"Higher", isMaths:false, probs:Array(8).fill(0)}); stepTotal.textContent=subjects.length; current=subjects.length-1; renderWizard(); };
+        addBtn .onclick = ()=> { saveFromUI(); subjects.push({name:"", level:"Higher", probs:Array(8).fill(0)}); stepTotal.textContent=subjects.length; current=subjects.length-1; renderWizard(); };
         finishBtn.onclick = ()=> {
           saveFromUI();
           if (!targetInput.value.trim()) {
@@ -158,7 +159,6 @@
             subjects: subjects.map(s => ({
               name: s.name,
               level: s.level,
-              isMaths: s.isMaths,
               probs: s.probs
             }))
           };
@@ -210,26 +210,6 @@
           subName.value = s.name;
           subName.placeholder = `Enter subject ${current+1}`;
           subLevel.value = s.level;
-  
-          // Maths single-select
-          const idx = subjects.findIndex(x => x.isMaths);
-          mathsIndex = (idx >= 0) ? idx : null;
-  
-          subMaths.checked = !!s.isMaths;
-          const locked = mathsIndex !== null && mathsIndex !== current;
-          subMaths.disabled = locked;
-          mathsLockHint.classList.toggle('d-none', !locked);
-  
-          subMaths.onchange = ()=>{
-            if (subMaths.checked){
-              if (mathsIndex !== null && mathsIndex !== current) subjects[mathsIndex].isMaths = false;
-              subjects[current].isMaths = true; mathsIndex = current;
-            } else {
-              if (mathsIndex === current) mathsIndex = null;
-              subjects[current].isMaths = false;
-            }
-            renderWizard();
-          };
   
           // name/level
           subName.oninput = ()=> {
@@ -297,8 +277,8 @@
             const rawSum = s.probs.reduce((a,b)=>a+b,0);
             const probs = rawSum>0 ? s.probs.map(p=>p/rawSum) : Array(8).fill(0); // skip empty later
             let expected=0;
-            for (let g=0; g<8; g++) expected += probs[g]*getPoints(g, s.isMaths, s.level);
-            return { name: s.name || `Subject ${idx+1}`, level: s.level, isMaths: s.isMaths, probs, expected, rawSum };
+            for (let g=0; g<8; g++) expected += probs[g]*getPoints(g, s.name, s.level);
+            return { name: s.name || `Subject ${idx+1}`, level: s.level, probs, expected, rawSum };
           });
         }
         function bestSix(list){
@@ -320,7 +300,7 @@
             const pts = [];
             for (let g=0; g<8; g++){
               const p = subj.probs[g];
-              if (p > 0) pts.push([ getPoints(g, subj.isMaths, subj.level), p ]);
+              if (p > 0) pts.push([ getPoints(g, subj.name, subj.level), p ]);
             }
             if (pts.length === 0) continue;
   
