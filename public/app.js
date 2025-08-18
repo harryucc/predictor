@@ -9,7 +9,11 @@
   
     window.addEventListener('error', (e)=> {
       // Ignore generic cross-origin errors from third-party scripts
+    codex/add-user-signup-for-results-improvement-3ryfgt
       if (e.message && e.message.toLowerCase().includes('script error')) return;
+=======
+      if (e.message === 'Script error.' && !e.filename) return;
+    main
       showErr(e.message || e.error);
     });
     window.addEventListener('unhandledrejection', (e)=> showErr(e.reason || 'Unhandled promise rejection'));
@@ -77,6 +81,16 @@
             actualResults,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
+        }
+
+        function promptSignup(){
+          const user = auth.currentUser;
+          if (user && user.isAnonymous){
+            const go = confirm('Save this prediction and add your real results on 22/8? Sign up now!');
+            if (go){
+              window.location.href = 'results.html';
+            }
+          }
         }
 
         // Datalist helpers
@@ -173,6 +187,7 @@
           };
           submitPrediction(payload).then(id => {
             console.log('Saved submission', id);
+            promptSignup();
           }).catch(err => showErr(err.message || err));
         };
   
