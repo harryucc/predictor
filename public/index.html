@@ -45,6 +45,10 @@
       color:#6c757d; font-weight:600;
     }
     .ad-box .ad-inner{width:100%; height:100%; display:flex; align-items:center; justify-content:center; padding:8px;}
+    .nav-actions .btn-lg{font-weight:600;}
+    @media (max-width: 576px){
+      .nav-actions .btn-lg{width:100%;}
+    }
     @media (max-width: 991.98px){
       .ad-box{position:relative; top:auto; min-height:120px; margin-bottom:1rem;}
     }
@@ -56,6 +60,24 @@
 <body>
 
   <div id="errOverlay"><strong>Script error:</strong> <pre id="errText"></pre></div>
+
+  <!-- Tutorial Modal -->
+  <div class="modal fade" id="tutorialModal" tabindex="-1" aria-labelledby="tutorialLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="tutorialLabel">Welcome</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Enter each subject one at a time, pick probabilities for each grade in the subject, go through each subject and then find out the likelihood of your expected points.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-main" data-bs-dismiss="modal">Got it</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- NAVBAR -->
   <nav class="navbar navbar-light sticky-top">
@@ -161,6 +183,14 @@
                 <div class="col-12">
                   <label class="form-label">Set probability for the selected grade</label>
 
+                  <div class="mb-3">
+                    <label for="probInput" class="form-label">Manual Probability</label>
+                    <div class="input-group">
+                      <input id="probInput" class="form-control" placeholder="e.g. 70 or 0.7">
+                      <button id="kpSet" class="btn btn-main" type="button">Set Value for Selected Grade</button>
+                    </div>
+                  </div>
+
                   <!-- Percent grid -->
                   <div class="mb-3">
                     <div class="d-grid gap-2" style="grid-template-columns: repeat(3, 1fr); display:grid;">
@@ -177,29 +207,21 @@
                       <button class="btn btn-outline-secondary pct" data-p="10">10%</button>
                     </div>
                   </div>
-
-                  <div class="mb-3">
-                    <label for="probInput" class="form-label">Manual Probability</label>
-                    <div class="input-group">
-                      <input id="probInput" class="form-control" placeholder="e.g. 70 or 0.7">
-                      <button id="kpSet" class="btn btn-main" type="button">Set Value for Selected Grade</button>
-                    </div>
-                  </div>
                 </div>
               </div>
 
               <hr class="my-4"/>
 
-              <div class="d-flex flex-wrap gap-2 justify-content-between">
-                <div>
-                  <button id="prevBtn" class="btn btn-outline-secondary">&larr; Previous</button>
-                  <button id="nextBtn" class="btn btn-outline-secondary">Next &rarr;</button>
-                  <button id="addBtn" class="btn btn-outline-secondary">+ Add Subject</button>
-                  <span class="ms-2 text-muted small">We’ll use your best 6 subjects when calculating.</span>
+              <div class="nav-actions d-flex flex-wrap gap-2 justify-content-between">
+                <div class="d-flex flex-wrap gap-2 flex-grow-1">
+                  <button id="prevBtn" class="btn btn-outline-secondary btn-lg flex-fill">&larr; Previous</button>
+                  <button id="nextBtn" class="btn btn-outline-secondary btn-lg flex-fill">Next &rarr;</button>
+                  <button id="addBtn" class="btn btn-outline-secondary btn-lg flex-fill">+ Add Subject</button>
                 </div>
-                <div>
-                  <button id="finishBtn" class="btn btn-main">Finish & Calculate</button>
+                <div class="flex-grow-1 flex-md-grow-0">
+                  <button id="finishBtn" class="btn btn-main btn-lg w-100">Finish & Calculate</button>
                 </div>
+                <span class="w-100 text-muted small">We’ll use your best 6 subjects when calculating.</span>
               </div>
             </div>
           </div>

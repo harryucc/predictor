@@ -148,11 +148,13 @@
             targetInput.focus();
             return;
           }
-          calculateAndRender();
+          const result = calculateAndRender();
+          const desiredMarks = Number(targetInput.value);
           const school = schoolInput.value.trim();
           const payload = {
             school,
-            target: Number(targetInput.value),
+            desiredMarks,
+            meanMarks: result ? result.mean : null,
             subjects: subjects.map(s => ({
               name: s.name,
               level: s.level,
@@ -398,7 +400,7 @@
             selectionNote.textContent = 'No subjects yet — add at least one.';
             resultsEl.textContent = 'Awaiting input…';
             if (histChart) histChart.destroy();
-            return;
+            return null;
           }
   
           const {selected, dropped} = bestSix(prepared);
@@ -421,6 +423,7 @@
             </div>
           `;
           drawHistogram(dist, mean, stdDev);
+          return {mean, stdDev};
         }
   
         // expose for debug if you like
@@ -428,6 +431,11 @@
   
         // Initial render
         renderWizard();
+        const tutEl = document.getElementById('tutorialModal');
+        if (tutEl && typeof bootstrap !== 'undefined'){
+          const tut = new bootstrap.Modal(tutEl);
+          tut.show();
+        }
         // Don’t auto-calc on load; user hits Finish
         // calculateAndRender();
   
