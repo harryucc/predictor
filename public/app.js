@@ -13,9 +13,9 @@
     window.addEventListener('DOMContentLoaded', () => {
       try {
         /* ====== Grab DOM safely ====== */
-        const Q = (id) => {
+        const Q = (id, required = true) => {
           const el = document.getElementById(id);
-          if (!el) throw new Error(`Missing element: #${id}`);
+          if (!el && required) throw new Error(`Missing element: #${id}`);
           return el;
         };
   
@@ -42,6 +42,8 @@
         const histCanvas = Q('histogram');
         const subjectListEl = Q('subjectList');
         const subjectLetters = Q('subjectLetters');
+        // legacy element removed from markup; tolerate its absence
+        Q('subMaths', false);
 
         // Firebase setup
         const firebaseConfig = {
@@ -107,7 +109,7 @@
         };
 
         let subjectOptions = [];
-        fetch('subjects.json').then(r=>r.json()).then(list=>{
+        fetch('./subjects.json').then(r=>r.json()).then(list=>{
           subjectOptions = list;
           renderOptions(subjectListEl, list);
           initLetterFilter(subjectLetters, list, subjectListEl);

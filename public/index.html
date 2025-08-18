@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- TEMP: comment out AdSense while debugging
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7429797559685152" crossorigin="anonymous"></script>
-  -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Points Probability Calculator — Wizard</title>
@@ -39,18 +36,6 @@
     .letter-filter{display:flex; flex-wrap:wrap; gap:4px; margin-top:.25rem;}
     .letter-filter button{border:none;background:#f1f3f5;padding:2px 6px;font-size:.8rem;cursor:pointer;}
     .letter-filter button.active{background:#ced4da;}
-    .ad-box{
-      background:#ffffff; border:1px solid var(--border); border-radius:.5rem;
-      min-height:600px; position:sticky; top:72px; display:flex; align-items:center; justify-content:center;
-      color:#6c757d; font-weight:600;
-    }
-    .ad-box .ad-inner{width:100%; height:100%; display:flex; align-items:center; justify-content:center; padding:8px;}
-    .nav-actions .btn-lg{font-weight:600;}
-    @media (max-width: 576px){
-      .nav-actions .btn-lg{width:100%;}
-    }
-    @media (max-width: 991.98px){
-      .ad-box{position:relative; top:auto; min-height:120px; margin-bottom:1rem;}
     }
     /* Tiny error overlay */
     #errOverlay{position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#fee;border-top:1px solid #f5c2c7;color:#842029;padding:.5rem 1rem;font-size:.9rem;display:none}
@@ -90,16 +75,9 @@
     </div>
   </nav>
 
-  <!-- LAYOUT: side ads + main -->
   <div class="container-fluid">
     <div class="row g-3">
-      <!-- Left ad (desktop) -->
-      <aside class="col-lg-2 d-none d-lg-block">
-        <div class="ad-box"><div class="ad-inner"><span>Ad Banner</span></div></div>
-      </aside>
-
-      <!-- Main content -->
-      <main class="col-12 col-lg-8">
+      <main class="col-12">
         <div class="py-3">
           <header class="mb-3 text-center">
             <h1 class="h4 mb-3">Points Probability Calculator</h1>
@@ -246,16 +224,6 @@
           </div>
         </div>
       </main>
-
-      <!-- Right ad (desktop) -->
-      <aside class="col-lg-2 d-none d-lg-block">
-        <div class="ad-box"><div class="ad-inner"><span>Ad Banner</span></div></div>
-      </aside>
-
-      <!-- Mobile ad -->
-      <aside class="col-12 d-lg-none">
-        <div class="ad-box"><div class="ad-inner"><span>Ad Banner</span></div></div>
-      </aside>
     </div>
   </div>
 
