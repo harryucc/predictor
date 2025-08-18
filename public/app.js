@@ -23,7 +23,7 @@
         const stepNow = Q('stepNow');
         const stepTotal = Q('stepTotal');
         const subName = Q('subName');
-        const subjectsList = Q('subjectsList');
+        const subFilter = Q('subFilter');
         const subLevel = Q('subLevel');
         const gradePills = Q('gradePills');
         const remainingLabel = Q('remainingLabel');
@@ -82,26 +82,29 @@
         
         
         let allSubjects = [];
-        function updateSubjectOptions(filter){
-          subjectsList.innerHTML = '';
-          const f = filter.toLowerCase();
+        function populateSubjectOptions(){
+          subName.innerHTML = '<option value="">Select subject</option>';
           allSubjects
-            .filter(name => name.toLowerCase().includes(f))
-            .sort((a,b)=>{
-              const aStarts = a.toLowerCase().startsWith(f);
-              const bStarts = b.toLowerCase().startsWith(f);
-              if (aStarts === bStarts) return a.localeCompare(b);
-              return aStarts ? -1 : 1;
-            })
+            .slice()
+            .sort((a,b)=>a.localeCompare(b))
             .forEach(name => {
               const opt = document.createElement('option');
               opt.value = name;
-              subjectsList.appendChild(opt);
+              opt.textContent = name;
+              subName.appendChild(opt);
             });
         }
         fetch('subjects.json').then(r=>r.json()).then(list=>{
           allSubjects = list;
-          updateSubjectOptions('');
+          populateSubjectOptions();
+        });
+
+        subFilter.addEventListener('input', ()=>{
+          const f = subFilter.value.toLowerCase();
+          Array.from(subName.options).forEach(opt=>{
+            if (!opt.value) return;
+            opt.hidden = !opt.textContent.toLowerCase().includes(f);
+          });
         });
 
         function isValidSubject(name){
@@ -227,11 +230,11 @@
           s.isMaths = (s.name === 'Mathematics');
           subName.value = s.name;
           subLevel.value = s.level;
-          updateSubjectOptions(subName.value);
 
-          subName.oninput = ()=> {
-            updateSubjectOptions(subName.value);
-          };
+          // Reset filter and ensure options shown
+          subFilter.value = '';
+          subFilter.dispatchEvent(new Event('input'));
+
           subName.onchange = ()=> {
             const val = subName.value;
             subjects[current].name = val;
