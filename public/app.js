@@ -44,8 +44,6 @@
         const histCanvas = Q('histogram');
         const subjectListEl = Q('subjectList');
         const subjectLetters = Q('subjectLetters');
-        const schoolListEl = Q('schoolList');
-        const schoolLetters = Q('schoolLetters');
 
         // Firebase setup
         const firebaseConfig = {
@@ -55,6 +53,29 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const auth = firebase.auth();
+        auth.signInAnonymously().catch(err => showErr(err.message || err));
+
+        async function submitPrediction(prediction) {
+          const uid = auth.currentUser.uid;
+          const ref = db.collection('users').doc(uid).collection('predictions');
+          const docRef = await ref.add({
+            ...prediction,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            actualResults: null
+          });
+          return docRef.id;
+        }
+
+        async function submitActualResults(predictionId, actualResults) {
+          const uid = auth.currentUser.uid;
+          const ref = db.collection('users').doc(uid)
+                        .collection('predictions').doc(predictionId);
+          await ref.update({
+            actualResults,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
 
         // Datalist helpers
         const renderOptions = (dl, opts) => {
@@ -94,12 +115,6 @@
           initLetterFilter(subjectLetters, list, subjectListEl);
         });
 
-        let schoolOptions = [];
-        fetch('schools.json').then(r=>r.json()).then(list=>{
-          schoolOptions = list;
-          renderOptions(schoolListEl, list);
-          initLetterFilter(schoolLetters, list, schoolListEl);
-        });
 
         // Optional collections (may be empty on DOMContentLoaded)
         const pctButtons = Array.from(document.querySelectorAll('.pct'));
@@ -109,6 +124,7 @@
         const pointsMathsHigher = [125,113,102,91,81,71,37,0];
         const pointsOrdinary = [56,46,37,28,20,12,0,0];
         const H_LABELS = ["H1","H2","H3","H4","H5","H6","H7","H8"];
+        const O_LABELS = ["O1","O2","O3","O4","O5","O6","O7","O8"];
   
         const getPoints = (g, isMaths, level) =>
           level === 'Ordinary' ? pointsOrdinary[g] : (isMaths ? pointsMathsHigher[g] : pointsHigher[g]);
@@ -142,12 +158,11 @@
               level: s.level,
               isMaths: s.isMaths,
               probs: s.probs
-            })),
-            timestamp: new Date().toISOString()
+            }))
           };
-          db.collection('submissions').add(payload).then(()=>{
-            console.log('Saved submission');
-          }).catch(err=> showErr(err.message || err));
+          submitPrediction(payload).then(id => {
+            console.log('Saved submission', id);
+          }).catch(err => showErr(err.message || err));
         };
   
         targetInput.addEventListener('input', ()=>{
@@ -224,16 +239,17 @@
               subName.setCustomValidity('');
             }
           };
-          subLevel.onchange = ()=> { subjects[current].level = subLevel.value; };
+          subLevel.onchange = ()=> { subjects[current].level = subLevel.value; renderWizard(); };
   
           // Grade pills
           gradePills.innerHTML = "";
+            const labels = s.level === 'Ordinary' ? O_LABELS : H_LABELS;
             for (let i=0;i<8;i++){
               const pct = (s.probs[i]*100)||0;
               const pill = document.createElement('button');
               pill.type = 'button';
               pill.className = 'grade-pill' + (i===activeGrade ? ' active':'');
-              pill.innerHTML = `${H_LABELS[i]}<small>${pct.toFixed(1)}%</small>`;
+              pill.innerHTML = `${labels[i]}<small>${pct.toFixed(1)}%</small>`;
               const shade = 90 - s.probs[i]*40;
               pill.style.backgroundColor = `hsl(120, 60%, ${shade}%)`;
               if (shade < 60) pill.style.color = '#fff';
