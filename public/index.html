@@ -118,6 +118,9 @@
                     <div class="row g-3">
                       <div class="col-12 col-md-8">
                         <label class="form-label">Subject Name</label>
+                        <select id="subName" class="form-select">
+                          <option value="">Select subject</option>
+                        </select>
                         <input id="subName" class="form-control" list="subjectsList" placeholder="Start typing subject" required>
                         <datalist id="subjectsList"></datalist>
                       </div>
@@ -128,7 +131,6 @@
                           <option value="Ordinary">Ordinary</option>
                         </select>
                       </div>
-
                       <!-- Grade pills -->
                       <div class="col-12">
                         <div id="gradePills" class="d-grid" style="grid-template-columns: repeat(4, 1fr); gap: .5rem;"></div>

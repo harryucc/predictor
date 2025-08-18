@@ -79,7 +79,8 @@
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         }
-
+        
+        
         let allSubjects = [];
         function updateSubjectOptions(filter){
           subjectsList.innerHTML = '';
@@ -220,7 +221,7 @@
         probInput.addEventListener('keydown', e=>{ if(e.key==='Enter') Q('kpSet').click(); });
   
         /* ====== Render Wizard ====== */
-        function renderWizard(){
+      function renderWizard(){
           stepNow.textContent = String(current+1);
           stepTotal.textContent = String(subjects.length);
 
