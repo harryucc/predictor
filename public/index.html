@@ -34,9 +34,6 @@
     .badge-chip{background:#f1f3f5; color:#495057; border:1px solid #e9ecef; border-radius:9999px; padding:0 .5rem; margin:.1rem; display:inline-block;}
     #histogram{max-height:420px;}
     .navbar-light{background:#ffffff; border-bottom:1px solid var(--border);}
-    .letter-filter{display:flex; flex-wrap:wrap; gap:4px; margin-top:.25rem;}
-    .letter-filter button{border:none;background:#f1f3f5;padding:2px 6px;font-size:.8rem;cursor:pointer;}
-    .letter-filter button.active{background:#ced4da;}
     .nav-actions .btn-lg{font-weight:600;}
     @media (max-width: 576px){
       .nav-actions .btn-lg{width:100%;}
@@ -75,6 +72,7 @@
       <div class="d-flex align-items-center gap-3">
         <a class="text-muted text-decoration-none" href="#">About</a>
         <a class="text-muted text-decoration-none" href="#">Privacy</a>
+        <a class="text-muted text-decoration-none" href="results.html">Results</a>
       </div>
     </div>
   </nav>
@@ -100,7 +98,7 @@
                 <input id="school" class="form-control mx-auto" style="max-width:300px" placeholder="Type your school">
               </div>
             </div>
-            <p class="text-muted mt-2 mb-0">Tap a grade (H1–H8 or O1–O8), then set its probability with the % grid or enter it manually below. The bar fills to 100%. Maths bonus applies only for <b>Higher</b>, and only one subject can be Maths.</p>
+            <p class="text-muted mt-2 mb-0">Tap a grade (H1–H8 or O1–O8), then set its probability with the % grid or enter it manually below. The bar fills to 100%. Maths bonus applies only for <b>Higher</b> Mathematics.</p>
           </header>
 
           <!-- Wizard Card -->
@@ -118,25 +116,18 @@
                 <div class="col-12">
                   <div id="subjectCard" class="p-3 rounded" style="background:#fff; border:1px solid var(--border);">
                     <div class="row g-3">
-                      <div class="col-12 col-md-7">
+                      <div class="col-12 col-md-8">
                         <label class="form-label">Subject Name</label>
-                        <input id="subName" class="form-control" list="subjectList" placeholder="">
-                        <datalist id="subjectList"></datalist>
-                        <div id="subjectLetters" class="letter-filter"></div>
+                        <select id="subName" class="form-select">
+                          <option value="">Select subject</option>
+                        </select>
                       </div>
-                      <div class="col-6 col-md-3">
+                      <div class="col-12 col-md-4">
                         <label class="form-label">Level</label>
                         <select id="subLevel" class="form-select">
                           <option value="Higher" selected>Higher</option>
                           <option value="Ordinary">Ordinary</option>
                         </select>
-                      </div>
-                      <div class="col-6 col-md-2 d-flex align-items-end">
-                        <div class="form-check">
-                          <input id="subMaths" type="checkbox" class="form-check-input">
-                          <label for="subMaths" class="form-check-label">Maths?</label>
-                          <div id="mathsLockHint" class="form-text d-none">Maths already set for another subject.</div>
-                        </div>
                       </div>
 
                       <!-- Grade pills -->
