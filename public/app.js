@@ -42,7 +42,6 @@
         const selectionNote = Q('selectionNote');
         const resultsEl = Q('results');
         const histCanvas = Q('histogram');
-        const subjectListEl = Q('subjectList');
         const subjectLetters = Q('subjectLetters');
         const schoolListEl = Q('schoolList');
         const schoolLetters = Q('schoolLetters');
@@ -59,9 +58,16 @@
         // Datalist helpers
         const renderOptions = (dl, opts) => {
           dl.innerHTML = '';
+          if (dl.tagName === 'SELECT'){
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Select subject';
+            dl.appendChild(placeholder);
+          }
           opts.forEach(name => {
             const opt = document.createElement('option');
             opt.value = name;
+            opt.textContent = name;
             dl.appendChild(opt);
           });
         };
@@ -90,8 +96,8 @@
         let subjectOptions = [];
         fetch('subjects.json').then(r=>r.json()).then(list=>{
           subjectOptions = list;
-          renderOptions(subjectListEl, list);
-          initLetterFilter(subjectLetters, list, subjectListEl);
+          renderOptions(subName, list);
+          initLetterFilter(subjectLetters, list, subName);
         });
 
         let schoolOptions = [];
@@ -191,7 +197,6 @@
   
           const s = subjects[current];
           subName.value = s.name;
-          subName.placeholder = `Enter subject ${current+1}`;
           subLevel.value = s.level;
   
           // Maths single-select
@@ -215,10 +220,10 @@
           };
   
           // name/level
-          subName.oninput = ()=> {
+          subName.onchange = ()=> {
             const val = subName.value.trim();
             subjects[current].name = val;
-            if (subjectOptions.length && !subjectOptions.includes(val)) {
+            if (!val || (subjectOptions.length && !subjectOptions.includes(val))) {
               subName.setCustomValidity('Choose a subject from the list');
             } else {
               subName.setCustomValidity('');
@@ -252,13 +257,13 @@
         function saveFromUI(){
           const s = subjects[current];
           const val = subName.value.trim();
-          if (subjectOptions.length && !subjectOptions.includes(val)) {
+          if (!val || (subjectOptions.length && !subjectOptions.includes(val))) {
             subName.setCustomValidity('Choose a subject from the list');
             subName.reportValidity();
             s.name = `Subject ${current+1}`;
           } else {
             subName.setCustomValidity('');
-            s.name = val || `Subject ${current+1}`;
+            s.name = val;
           }
           s.level = subLevel.value;
         }
