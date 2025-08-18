@@ -80,7 +80,6 @@
           });
         }
         
-        
         let allSubjects = [];
         function populateSubjectOptions(){
           subName.innerHTML = '<option value="">Select subject</option>';
@@ -230,7 +229,7 @@
           s.isMaths = (s.name === 'Mathematics');
           subName.value = s.name;
           subLevel.value = s.level;
-
+        
           // Reset filter and ensure options shown
           subFilter.value = '';
           subFilter.dispatchEvent(new Event('input'));
