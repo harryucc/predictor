@@ -149,9 +149,7 @@
               expected: s.expected
             }))
           };
-          submitPrediction(payload, docName).then(id => {
-            console.log('Saved submission', id);
-          }).catch(err => showErr(err.message || err));
+          submitPrediction(payload, docName).catch(err => showErr(err.message || err));
         };
   
         targetInput.addEventListener('input', ()=>{
@@ -384,9 +382,6 @@
           drawHistogram(dist, mean, stdDev);
           return {mean, stdDev};
         }
-  
-        // expose for debug if you like
-        window._calc = calculateAndRender;
   
         // Initial render
         renderWizard();
