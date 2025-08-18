@@ -75,6 +75,16 @@
           });
         }
 
+        function promptSignup(){
+          const user = auth.currentUser;
+          if (user && user.isAnonymous){
+            const go = confirm('Save this prediction and add your real results on 22/8? Sign up now!');
+            if (go){
+              window.location.href = 'results.html';
+            }
+          }
+        }
+
         // Datalist helpers
         const renderOptions = (dl, opts) => {
           dl.innerHTML = '';
@@ -169,6 +179,7 @@
           };
           submitPrediction(payload).then(id => {
             console.log('Saved submission', id);
+            promptSignup();
           }).catch(err => showErr(err.message || err));
         };
   
