@@ -82,17 +82,11 @@
         
         
         let allSubjects = [];
-        function updateSubjectOptions(filter){
+        function populateSubjectOptions(){
           subjectsList.innerHTML = '';
-          const f = filter.toLowerCase();
           allSubjects
-            .filter(name => name.toLowerCase().includes(f))
-            .sort((a,b)=>{
-              const aStarts = a.toLowerCase().startsWith(f);
-              const bStarts = b.toLowerCase().startsWith(f);
-              if (aStarts === bStarts) return a.localeCompare(b);
-              return aStarts ? -1 : 1;
-            })
+            .slice()
+            .sort((a,b)=>a.localeCompare(b))
             .forEach(name => {
               const opt = document.createElement('option');
               opt.value = name;
@@ -101,7 +95,7 @@
         }
         fetch('subjects.json').then(r=>r.json()).then(list=>{
           allSubjects = list;
-          updateSubjectOptions('');
+          populateSubjectOptions();
         });
 
         function isValidSubject(name){
@@ -227,11 +221,10 @@
           s.isMaths = (s.name === 'Mathematics');
           subName.value = s.name;
           subLevel.value = s.level;
-          updateSubjectOptions(subName.value);
 
-          subName.oninput = ()=> {
-            updateSubjectOptions(subName.value);
-          };
+          // Ensure options are present for the datalist
+          if (!subjectsList.children.length) populateSubjectOptions();
+
           subName.onchange = ()=> {
             const val = subName.value;
             subjects[current].name = val;
