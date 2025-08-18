@@ -23,6 +23,7 @@
         const stepNow = Q('stepNow');
         const stepTotal = Q('stepTotal');
         const subName = Q('subName');
+        const subjectsList = Q('subjectsList');
         const subLevel = Q('subLevel');
         const gradePills = Q('gradePills');
         const remainingLabel = Q('remainingLabel');
@@ -79,13 +80,20 @@
           });
         }
 
+        let allSubjects = [];
+        function updateSubjectOptions(filter){
+          subjectsList.innerHTML = '';
+          allSubjects
+            .filter(name => name.toLowerCase().includes(filter.toLowerCase()))
+            .forEach(name => {
+              const opt = document.createElement('option');
+              opt.value = name;
+              subjectsList.appendChild(opt);
+            });
+        }
         fetch('subjects.json').then(r=>r.json()).then(list=>{
-          list.forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = name;
-            subName.appendChild(opt);
-          });
+          allSubjects = list;
+          updateSubjectOptions('');
         });
 
 
@@ -189,11 +197,13 @@
           s.isMaths = (s.name === 'Mathematics');
           subName.value = s.name;
           subLevel.value = s.level;
+          updateSubjectOptions(subName.value);
 
-          subName.onchange = ()=> {
+          subName.oninput = ()=> {
             const val = subName.value;
             subjects[current].name = val;
             subjects[current].isMaths = (val === 'Mathematics');
+            updateSubjectOptions(val);
             renderWizard();
           };
           subLevel.onchange = ()=> { subjects[current].level = subLevel.value; renderWizard(); };
