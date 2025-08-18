@@ -44,8 +44,6 @@
         const histCanvas = Q('histogram');
         const subjectListEl = Q('subjectList');
         const subjectLetters = Q('subjectLetters');
-        const schoolListEl = Q('schoolList');
-        const schoolLetters = Q('schoolLetters');
 
         // Firebase setup
         const firebaseConfig = {
@@ -117,12 +115,6 @@
           initLetterFilter(subjectLetters, list, subjectListEl);
         });
 
-        let schoolOptions = [];
-        fetch('schools.json').then(r=>r.json()).then(list=>{
-          schoolOptions = list;
-          renderOptions(schoolListEl, list);
-          initLetterFilter(schoolLetters, list, schoolListEl);
-        });
 
         // Optional collections (may be empty on DOMContentLoaded)
         const pctButtons = Array.from(document.querySelectorAll('.pct'));
