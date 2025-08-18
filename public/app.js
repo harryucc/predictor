@@ -79,12 +79,20 @@
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
         }
-
+        
+        
         let allSubjects = [];
         function updateSubjectOptions(filter){
           subjectsList.innerHTML = '';
+          const f = filter.toLowerCase();
           allSubjects
-            .filter(name => name.toLowerCase().includes(filter.toLowerCase()))
+            .filter(name => name.toLowerCase().includes(f))
+            .sort((a,b)=>{
+              const aStarts = a.toLowerCase().startsWith(f);
+              const bStarts = b.toLowerCase().startsWith(f);
+              if (aStarts === bStarts) return a.localeCompare(b);
+              return aStarts ? -1 : 1;
+            })
             .forEach(name => {
               const opt = document.createElement('option');
               opt.value = name;
@@ -95,6 +103,18 @@
           allSubjects = list;
           updateSubjectOptions('');
         });
+
+        function isValidSubject(name){
+          return allSubjects.includes(name);
+        }
+        function validateCurrentSubject(){
+          if (!isValidSubject(subName.value)){
+            alert('Please select a subject from the list.');
+            subName.focus();
+            return false;
+          }
+          return true;
+        }
 
 
         // Optional collections (may be empty on DOMContentLoaded)
@@ -119,10 +139,22 @@
   
         /* ====== UI Wiring ====== */
         prevBtn.onclick = ()=> { if (current>0){ saveFromUI(); current--; renderWizard(); } };
-        nextBtn.onclick = ()=> { if (current<subjects.length-1){ saveFromUI(); current++; renderWizard(); } };
-        addBtn .onclick = ()=> { saveFromUI(); subjects.push({name:"", level:"Higher", isMaths:false, probs:Array(8).fill(0)}); stepTotal.textContent=subjects.length; current=subjects.length-1; renderWizard(); };
+        nextBtn.onclick = ()=> {
+          if (!validateCurrentSubject()) return;
+          if (current<subjects.length-1){ saveFromUI(); current++; renderWizard(); }
+        };
+        addBtn .onclick = ()=> {
+          if (!validateCurrentSubject()) return;
+          saveFromUI(); subjects.push({name:"", level:"Higher", isMaths:false, probs:Array(8).fill(0)});
+          stepTotal.textContent=subjects.length; current=subjects.length-1; renderWizard();
+        };
         finishBtn.onclick = ()=> {
+          if (!validateCurrentSubject()) return;
           saveFromUI();
+          if (!subjects.every(s => isValidSubject(s.name))){
+            alert('Please select valid subjects for all entries.');
+            return;
+          }
           if (!targetInput.value.trim()) {
             alert('Please enter target points.');
             targetInput.focus();
@@ -187,7 +219,7 @@
         probInput.addEventListener('keydown', e=>{ if(e.key==='Enter') Q('kpSet').click(); });
   
         /* ====== Render Wizard ====== */
-        function renderWizard(){
+      function renderWizard(){
           stepNow.textContent = String(current+1);
           stepTotal.textContent = String(subjects.length);
 
@@ -198,10 +230,12 @@
           updateSubjectOptions(subName.value);
 
           subName.oninput = ()=> {
+            updateSubjectOptions(subName.value);
+          };
+          subName.onchange = ()=> {
             const val = subName.value;
             subjects[current].name = val;
             subjects[current].isMaths = (val === 'Mathematics');
-            updateSubjectOptions(val);
             renderWizard();
           };
           subLevel.onchange = ()=> { subjects[current].level = subLevel.value; renderWizard(); };
