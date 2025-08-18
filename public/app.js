@@ -7,7 +7,11 @@
       console.error(msg);
     };
   
-    window.addEventListener('error', (e)=> showErr(e.message || e.error));
+    window.addEventListener('error', (e)=> {
+      // Ignore generic cross-origin "Script error." events without filename
+      if (e.message === 'Script error.' && !e.filename) return;
+      showErr(e.message || e.error);
+    });
     window.addEventListener('unhandledrejection', (e)=> showErr(e.reason || 'Unhandled promise rejection'));
   
     window.addEventListener('DOMContentLoaded', () => {
