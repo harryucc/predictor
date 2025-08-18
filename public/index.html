@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- TEMP: comment out AdSense while debugging
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7429797559685152" crossorigin="anonymous"></script>
-  -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Points Probability Calculator — Wizard</title>
@@ -39,14 +36,9 @@
     .letter-filter{display:flex; flex-wrap:wrap; gap:4px; margin-top:.25rem;}
     .letter-filter button{border:none;background:#f1f3f5;padding:2px 6px;font-size:.8rem;cursor:pointer;}
     .letter-filter button.active{background:#ced4da;}
-    .ad-box{
-      background:#ffffff; border:1px solid var(--border); border-radius:.5rem;
-      min-height:600px; position:sticky; top:72px; display:flex; align-items:center; justify-content:center;
-      color:#6c757d; font-weight:600;
-    }
-    .ad-box .ad-inner{width:100%; height:100%; display:flex; align-items:center; justify-content:center; padding:8px;}
-    @media (max-width: 991.98px){
-      .ad-box{position:relative; top:auto; min-height:120px; margin-bottom:1rem;}
+    .nav-actions .btn-lg{font-weight:600;}
+    @media (max-width: 576px){
+      .nav-actions .btn-lg{width:100%;}
     }
     /* Tiny error overlay */
     #errOverlay{position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#fee;border-top:1px solid #f5c2c7;color:#842029;padding:.5rem 1rem;font-size:.9rem;display:none}
@@ -56,6 +48,24 @@
 <body>
 
   <div id="errOverlay"><strong>Script error:</strong> <pre id="errText"></pre></div>
+
+  <!-- Tutorial Modal -->
+  <div class="modal fade" id="tutorialModal" tabindex="-1" aria-labelledby="tutorialLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="tutorialLabel">Welcome</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Enter each subject one at a time, pick probabilities for each grade in the subject, go through each subject and then find out the likelihood of your expected points.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-main" data-bs-dismiss="modal">Got it</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- NAVBAR -->
   <nav class="navbar navbar-light sticky-top">
@@ -68,16 +78,9 @@
     </div>
   </nav>
 
-  <!-- LAYOUT: side ads + main -->
   <div class="container-fluid">
     <div class="row g-3">
-      <!-- Left ad (desktop) -->
-      <aside class="col-lg-2 d-none d-lg-block">
-        <div class="ad-box"><div class="ad-inner"><span>Ad Banner</span></div></div>
-      </aside>
-
-      <!-- Main content -->
-      <main class="col-12 col-lg-8">
+      <main class="col-12">
         <div class="py-3">
           <header class="mb-3 text-center">
             <h1 class="h4 mb-3">Points Probability Calculator</h1>
@@ -91,7 +94,7 @@
                 <input id="school" class="form-control mx-auto" style="max-width:300px" placeholder="Type your school">
               </div>
             </div>
-            <p class="text-muted mt-2 mb-0">Tap a grade (H1–H8 or O1–O8), then set its probability with the % grid or enter it manually below. The bar fills to 100%. Maths bonus applies only for <b>Higher</b>, and only one subject can be Maths.</p>
+            <p class="text-muted mt-2 mb-0">Tap a grade (H1–H8 or O1–O8), then set its probability with the % grid or enter it manually below. The bar fills to 100%. Bonus points are applied automatically for Higher level Mathematics.</p>
           </header>
 
           <!-- Wizard Card -->
@@ -109,25 +112,18 @@
                 <div class="col-12">
                   <div id="subjectCard" class="p-3 rounded" style="background:#fff; border:1px solid var(--border);">
                     <div class="row g-3">
-                      <div class="col-12 col-md-7">
+                      <div class="col-12 col-md-8">
                         <label class="form-label">Subject Name</label>
                         <input id="subName" class="form-control" list="subjectList" placeholder="">
                         <datalist id="subjectList"></datalist>
                         <div id="subjectLetters" class="letter-filter"></div>
                       </div>
-                      <div class="col-6 col-md-3">
+                      <div class="col-12 col-md-4">
                         <label class="form-label">Level</label>
                         <select id="subLevel" class="form-select">
                           <option value="Higher" selected>Higher</option>
                           <option value="Ordinary">Ordinary</option>
                         </select>
-                      </div>
-                      <div class="col-6 col-md-2 d-flex align-items-end">
-                        <div class="form-check">
-                          <input id="subMaths" type="checkbox" class="form-check-input">
-                          <label for="subMaths" class="form-check-label">Maths?</label>
-                          <div id="mathsLockHint" class="form-text d-none">Maths already set for another subject.</div>
-                        </div>
                       </div>
 
                       <!-- Grade pills -->
@@ -161,6 +157,14 @@
                 <div class="col-12">
                   <label class="form-label">Set probability for the selected grade</label>
 
+                  <div class="mb-3">
+                    <label for="probInput" class="form-label">Manual Probability</label>
+                    <div class="input-group">
+                      <input id="probInput" class="form-control" placeholder="e.g. 70 or 0.7">
+                      <button id="kpSet" class="btn btn-main" type="button">Set Value for Selected Grade</button>
+                    </div>
+                  </div>
+
                   <!-- Percent grid -->
                   <div class="mb-3">
                     <div class="d-grid gap-2" style="grid-template-columns: repeat(3, 1fr); display:grid;">
@@ -177,29 +181,21 @@
                       <button class="btn btn-outline-secondary pct" data-p="10">10%</button>
                     </div>
                   </div>
-
-                  <div class="mb-3">
-                    <label for="probInput" class="form-label">Manual Probability</label>
-                    <div class="input-group">
-                      <input id="probInput" class="form-control" placeholder="e.g. 70 or 0.7">
-                      <button id="kpSet" class="btn btn-main" type="button">Set Value for Selected Grade</button>
-                    </div>
-                  </div>
                 </div>
               </div>
 
               <hr class="my-4"/>
 
-              <div class="d-flex flex-wrap gap-2 justify-content-between">
-                <div>
-                  <button id="prevBtn" class="btn btn-outline-secondary">&larr; Previous</button>
-                  <button id="nextBtn" class="btn btn-outline-secondary">Next &rarr;</button>
-                  <button id="addBtn" class="btn btn-outline-secondary">+ Add Subject</button>
-                  <span class="ms-2 text-muted small">We’ll use your best 6 subjects when calculating.</span>
+              <div class="nav-actions d-flex flex-wrap gap-2 justify-content-between">
+                <div class="d-flex flex-wrap gap-2 flex-grow-1">
+                  <button id="prevBtn" class="btn btn-outline-secondary btn-lg flex-fill">&larr; Previous</button>
+                  <button id="nextBtn" class="btn btn-outline-secondary btn-lg flex-fill">Next &rarr;</button>
+                  <button id="addBtn" class="btn btn-outline-secondary btn-lg flex-fill">+ Add Subject</button>
                 </div>
-                <div>
-                  <button id="finishBtn" class="btn btn-main">Finish & Calculate</button>
+                <div class="flex-grow-1 flex-md-grow-0">
+                  <button id="finishBtn" class="btn btn-main btn-lg w-100">Finish & Calculate</button>
                 </div>
+                <span class="w-100 text-muted small">We’ll use your best 6 subjects when calculating.</span>
               </div>
             </div>
           </div>
@@ -231,18 +227,12 @@
           </div>
         </div>
       </main>
-
-      <!-- Right ad (desktop) -->
-      <aside class="col-lg-2 d-none d-lg-block">
-        <div class="ad-box"><div class="ad-inner"><span>Ad Banner</span></div></div>
-      </aside>
-
-      <!-- Mobile ad -->
-      <aside class="col-12 d-lg-none">
-        <div class="ad-box"><div class="ad-inner"><span>Ad Banner</span></div></div>
-      </aside>
     </div>
   </div>
+
+  <footer class="text-center my-4">
+    <a href="about.html">About</a> · <a href="privacy.html">Privacy</a>
+  </footer>
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
