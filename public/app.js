@@ -23,6 +23,7 @@
         const stepNow = Q('stepNow');
         const stepTotal = Q('stepTotal');
         const subName = Q('subName');
+        const subjectsList = Q('subjectsList');
         const subLevel = Q('subLevel');
         const gradePills = Q('gradePills');
         const remainingLabel = Q('remainingLabel');
@@ -52,14 +53,20 @@
         const auth = firebase.auth();
         auth.signInAnonymously().catch(err => showErr(err.message || err));
 
-        async function submitPrediction(prediction) {
+        async function submitPrediction(prediction, docName) {
           const uid = auth.currentUser.uid;
           const ref = db.collection('users').doc(uid).collection('predictions');
-          const docRef = await ref.add({
+          const docRef = ref.doc(docName);
+          await docRef.set({
             ...prediction,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             actualResults: null
           });
+          // verify document exists after writing
+          const snapshot = await docRef.get();
+          if (!snapshot.exists) {
+            throw new Error('Submission failed to save');
+          }
           return docRef.id;
         }
 
@@ -73,13 +80,20 @@
           });
         }
 
+        let allSubjects = [];
+        function updateSubjectOptions(filter){
+          subjectsList.innerHTML = '';
+          allSubjects
+            .filter(name => name.toLowerCase().includes(filter.toLowerCase()))
+            .forEach(name => {
+              const opt = document.createElement('option');
+              opt.value = name;
+              subjectsList.appendChild(opt);
+            });
+        }
         fetch('subjects.json').then(r=>r.json()).then(list=>{
-          list.forEach(name => {
-            const opt = document.createElement('option');
-            opt.value = name;
-            opt.textContent = name;
-            subName.appendChild(opt);
-          });
+          allSubjects = list;
+          updateSubjectOptions('');
         });
 
 
@@ -114,21 +128,28 @@
             targetInput.focus();
             return;
           }
+          if (!schoolInput.value.trim()) {
+            alert('Please enter school name.');
+            schoolInput.focus();
+            return;
+          }
+          const preparedSubjects = collectForCalc();
           const result = calculateAndRender();
           const desiredMarks = Number(targetInput.value);
           const school = schoolInput.value.trim();
+          const timestamp = new Date().toISOString();
+          const docName = `${timestamp} - ${school}`;
           const payload = {
             school,
             desiredMarks,
             meanMarks: result ? result.mean : null,
-            subjects: subjects.map(s => ({
+            subjects: preparedSubjects.map(s => ({
               name: s.name,
               level: s.level,
-              isMaths: s.isMaths,
-              probs: s.probs
+              expected: s.expected
             }))
           };
-          submitPrediction(payload).then(id => {
+          submitPrediction(payload, docName).then(id => {
             console.log('Saved submission', id);
           }).catch(err => showErr(err.message || err));
         };
@@ -176,11 +197,13 @@
           s.isMaths = (s.name === 'Mathematics');
           subName.value = s.name;
           subLevel.value = s.level;
+          updateSubjectOptions(subName.value);
 
-          subName.onchange = ()=> {
+          subName.oninput = ()=> {
             const val = subName.value;
             subjects[current].name = val;
             subjects[current].isMaths = (val === 'Mathematics');
+            updateSubjectOptions(val);
             renderWizard();
           };
           subLevel.onchange = ()=> { subjects[current].level = subLevel.value; renderWizard(); };
