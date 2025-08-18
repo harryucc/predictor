@@ -32,22 +32,22 @@
         const li = document.createElement('li');
         li.className = 'list-group-item';
         const date = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleDateString() : 'unknown';
-        const actual = data.actualResults ? data.actualResults : '<em>not added</em>';
+        const actualVal = data.actualResults ? data.actualResults : '';
         li.innerHTML = `<div><strong>${data.desiredMarks ?? ''}</strong> points (mean ${data.meanMarks ?? ''}) - <small>${date}</small></div>` +
-                       `<div>Actual: ${actual} <button class="btn btn-sm btn-outline-primary ms-2 add-actual" data-id="${doc.id}">Add Actual</button></div>`;
+                       `<div class="mt-2 d-flex align-items-center gap-2"><input type="text" class="form-control form-control-sm actual-input" placeholder="Enter mock results" value="${actualVal}"><button class="btn btn-sm btn-outline-primary save-actual" data-id="${doc.id}">Save</button></div>`;
         predictionsList.appendChild(li);
       });
-      predictionsList.querySelectorAll('.add-actual').forEach(btn => {
+      predictionsList.querySelectorAll('.save-actual').forEach(btn => {
         btn.addEventListener('click', () => {
           const id = btn.getAttribute('data-id');
-          const val = prompt('Enter your actual results');
-          if (val){
-            const uid = auth.currentUser.uid;
-            db.collection('users').doc(uid).collection('predictions').doc(id).update({
-              actualResults: val,
-              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(loadPredictions);
-          }
+          const li = btn.closest('li');
+          const input = li.querySelector('.actual-input');
+          const val = input.value.trim();
+          const uid = auth.currentUser.uid;
+          db.collection('users').doc(uid).collection('predictions').doc(id).update({
+            actualResults: val,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }).then(loadPredictions);
         });
       });
     });
