@@ -109,6 +109,11 @@
           return true;
         }
 
+        function subjectComplete(subj){
+          const total = subj.probs.reduce((a,b)=>a+b,0);
+          return Math.abs(total - 1) < 1e-6; // allow tiny floating error
+        }
+
 
         // Optional collections (may be empty on DOMContentLoaded)
         const pctButtons = Array.from(document.querySelectorAll('.pct'));
@@ -134,18 +139,36 @@
         prevBtn.onclick = ()=> { if (current>0){ saveFromUI(); current--; renderWizard(); } };
         nextBtn.onclick = ()=> {
           if (!validateCurrentSubject()) return;
-          if (current<subjects.length-1){ saveFromUI(); current++; renderWizard(); }
+          if (!subjectComplete(subjects[current])){
+            alert('Please ensure probabilities total 100% before moving on.');
+            return;
+          }
+          if (current<subjects.length-1){
+            saveFromUI(); current++; renderWizard();
+            window.scrollTo({top:0, behavior:'smooth'});
+            subName.focus();
+          }
         };
         addBtn .onclick = ()=> {
           if (!validateCurrentSubject()) return;
+          if (!subjectComplete(subjects[current])){
+            alert('Please ensure probabilities total 100% before moving on.');
+            return;
+          }
           saveFromUI(); subjects.push({name:"", level:"Higher", isMaths:false, probs:Array(8).fill(0)});
           stepTotal.textContent=subjects.length; current=subjects.length-1; renderWizard();
+          window.scrollTo({top:0, behavior:'smooth'});
+          subName.focus();
         };
         finishBtn.onclick = ()=> {
           if (!validateCurrentSubject()) return;
           saveFromUI();
           if (!subjects.every(s => isValidSubject(s.name))){
             alert('Please select valid subjects for all entries.');
+            return;
+          }
+          if (!subjects.every(subjectComplete)){
+            alert('Ensure all subject probabilities add to 100%.');
             return;
           }
           if (!targetInput.value.trim()) {
@@ -340,7 +363,7 @@
         }
   
         /* ====== Chart ====== */
-        function drawHistogram(dist, mean, stdDev){
+        function drawHistogram(dist, mean, stdDev, targetVal){
           const binWidth=6;
           const bins=new Map();
           for (let i=0;i<dist.points.length;i++){
@@ -354,22 +377,45 @@
             upper = Math.ceil((mean+3*stdDev)/binWidth)*binWidth;
           }
           const labels = labelsAll.filter(v=>v>=lower && v<=upper);
-          const data = labels.map(k=>bins.get(k)||0);
-  
+          const data = labels.map(k=>({x:k, y:bins.get(k)||0}));
+
           const ctx = histCanvas.getContext('2d');
           if (histChart) histChart.destroy();
           const fill = getComputedStyle(document.documentElement).getPropertyValue('--accent-green').trim();
           const stroke = getComputedStyle(document.documentElement).getPropertyValue('--accent-green-border').trim();
-  
+
+          const plugins = [];
+          if (Number.isFinite(targetVal)){
+            plugins.push({
+              id:'targetLine',
+              afterDraw(chart){
+                const xScale = chart.scales.x;
+                if (targetVal < xScale.min || targetVal > xScale.max) return;
+                const x = xScale.getPixelForValue(targetVal);
+                const ctx = chart.ctx;
+                ctx.save();
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, chart.chartArea.top);
+                ctx.lineTo(x, chart.chartArea.bottom);
+                ctx.stroke();
+                ctx.restore();
+              }
+            });
+          }
+
           histChart = new Chart(ctx,{
             type:'bar',
-            data:{ labels: labels.map(String), datasets:[{ data, backgroundColor: fill, borderColor: stroke, borderWidth:1 }]},
+            data:{ datasets:[{ data, backgroundColor: fill, borderColor: stroke, borderWidth:1 }]},
             options:{
+              parsing:false,
               animation:false,
               responsive:true, maintainAspectRatio:false,
-              scales:{ x:{ grid:{color:'#edf0f2'}}, y:{ beginAtZero:true, grid:{color:'#edf0f2'}}},
-              plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>` ${(c.raw*100).toFixed(2)}%` } } }
-            }
+              scales:{ x:{ type:'linear', grid:{color:'#edf0f2'}}, y:{ beginAtZero:true, grid:{color:'#edf0f2'}}},
+              plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>` ${(c.raw.y*100).toFixed(2)}%` } } }
+            },
+            plugins
           });
         }
   
@@ -402,12 +448,13 @@
               <div>${pGE===null ? `<span class="text-muted">Enter a target to see your probability.</span>` : `P(Points ≥ ${targetVal}) = <b>${(pGE*100).toFixed(2)}%</b>`}</div>
             </div>
           `;
-          drawHistogram(dist, mean, stdDev);
+          drawHistogram(dist, mean, stdDev, targetVal);
           return {mean, stdDev};
         }
   
         // Initial render
         renderWizard();
+        subName.focus();
         const tutEl = document.getElementById('tutorialModal');
         if (tutEl && typeof bootstrap !== 'undefined'){
           const tut = new bootstrap.Modal(tutEl);
