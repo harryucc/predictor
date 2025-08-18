@@ -47,7 +47,7 @@
 
         // Firebase setup
         const firebaseConfig = {
-          apiKey: "YOUR_API_KEY",
+          apiKey: "AIzaSyAS5PvPMYQjCQz88drt1VG6B5Y2v3PpjZM",
           authDomain: "lcpredic.firebaseapp.com",
           projectId: "lcpredic"
         };
