@@ -23,7 +23,7 @@
         const stepNow = Q('stepNow');
         const stepTotal = Q('stepTotal');
         const subName = Q('subName');
-        const subjectsList = Q('subjectsList');
+        const subFilter = Q('subFilter');
         const subLevel = Q('subLevel');
         const gradePills = Q('gradePills');
         const remainingLabel = Q('remainingLabel');
@@ -80,22 +80,30 @@
           });
         }
         
-        
         let allSubjects = [];
         function populateSubjectOptions(){
-          subjectsList.innerHTML = '';
+          subName.innerHTML = '<option value="">Select subject</option>';
           allSubjects
             .slice()
             .sort((a,b)=>a.localeCompare(b))
             .forEach(name => {
               const opt = document.createElement('option');
               opt.value = name;
-              subjectsList.appendChild(opt);
+              opt.textContent = name;
+              subName.appendChild(opt);
             });
         }
         fetch('subjects.json').then(r=>r.json()).then(list=>{
           allSubjects = list;
           populateSubjectOptions();
+        });
+
+        subFilter.addEventListener('input', ()=>{
+          const f = subFilter.value.toLowerCase();
+          Array.from(subName.options).forEach(opt=>{
+            if (!opt.value) return;
+            opt.hidden = !opt.textContent.toLowerCase().includes(f);
+          });
         });
 
         function isValidSubject(name){
@@ -221,9 +229,10 @@
           s.isMaths = (s.name === 'Mathematics');
           subName.value = s.name;
           subLevel.value = s.level;
-
-          // Ensure options are present for the datalist
-          if (!subjectsList.children.length) populateSubjectOptions();
+        
+          // Reset filter and ensure options shown
+          subFilter.value = '';
+          subFilter.dispatchEvent(new Event('input'));
 
           subName.onchange = ()=> {
             const val = subName.value;
