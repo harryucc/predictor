@@ -23,7 +23,7 @@
         const stepNow = Q('stepNow');
         const stepTotal = Q('stepTotal');
         const subName = Q('subName');
-        const subjectsList = Q('subjectsList');
+        const subList = Q('subjectOptions');
         const subLevel = Q('subLevel');
         const gradePills = Q('gradePills');
         const remainingLabel = Q('remainingLabel');
@@ -82,26 +82,20 @@
         
         
         let allSubjects = [];
-        function updateSubjectOptions(filter){
-          subjectsList.innerHTML = '';
-          const f = filter.toLowerCase();
+        function populateSubjectOptions(){
+          subList.innerHTML = '';
           allSubjects
-            .filter(name => name.toLowerCase().includes(f))
-            .sort((a,b)=>{
-              const aStarts = a.toLowerCase().startsWith(f);
-              const bStarts = b.toLowerCase().startsWith(f);
-              if (aStarts === bStarts) return a.localeCompare(b);
-              return aStarts ? -1 : 1;
-            })
+            .slice()
+            .sort((a,b)=>a.localeCompare(b))
             .forEach(name => {
               const opt = document.createElement('option');
               opt.value = name;
-              subjectsList.appendChild(opt);
+              subList.appendChild(opt);
             });
         }
         fetch('subjects.json').then(r=>r.json()).then(list=>{
           allSubjects = list;
-          updateSubjectOptions('');
+          populateSubjectOptions();
         });
 
         function isValidSubject(name){
@@ -227,12 +221,8 @@
           s.isMaths = (s.name === 'Mathematics');
           subName.value = s.name;
           subLevel.value = s.level;
-          updateSubjectOptions(subName.value);
 
           subName.oninput = ()=> {
-            updateSubjectOptions(subName.value);
-          };
-          subName.onchange = ()=> {
             const val = subName.value;
             subjects[current].name = val;
             subjects[current].isMaths = (val === 'Mathematics');

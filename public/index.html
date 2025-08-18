@@ -118,11 +118,8 @@
                     <div class="row g-3">
                       <div class="col-12 col-md-8">
                         <label class="form-label">Subject Name</label>
-                        <select id="subName" class="form-select">
-                          <option value="">Select subject</option>
-                        </select>
-                        <input id="subName" class="form-control" list="subjectsList" placeholder="Start typing subject" required>
-                        <datalist id="subjectsList"></datalist>
+                        <input id="subName" list="subjectOptions" class="form-control" placeholder="Type to filter subjects" required>
+                        <datalist id="subjectOptions"></datalist>
                       </div>
                       <div class="col-12 col-md-4">
                         <label class="form-label">Level</label>
