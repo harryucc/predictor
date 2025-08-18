@@ -185,8 +185,12 @@
           const result = calculateAndRender();
           const desiredMarks = Number(targetInput.value);
           const school = schoolInput.value.trim();
+          const meanPoints = result && typeof result.mean === 'number'
+            ? Math.round(result.mean)
+            : 'unknown';
           const timestamp = new Date().toISOString();
-          const docName = `${timestamp} - ${school}`;
+          const safeSchool = school.replace(/[^a-zA-Z0-9]/g, '_');
+          const docName = `${meanPoints}+${safeSchool}+${timestamp}`;
           const payload = {
             school,
             desiredMarks,
