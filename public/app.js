@@ -42,8 +42,6 @@
         const histCanvas = Q('histogram');
         const subjectListEl = Q('subjectList');
         const subjectLetters = Q('subjectLetters');
-        // legacy element removed from markup; tolerate its absence
-        Q('subMaths', false);
 
         // Firebase setup
         const firebaseConfig = {
@@ -109,6 +107,11 @@
         };
 
         let subjectOptions = [];
+        subName.addEventListener('input', () => {
+          const q = subName.value.trim().toLowerCase();
+          const filtered = subjectOptions.filter(n => n.toLowerCase().includes(q));
+          renderOptions(subjectListEl, filtered);
+        });
         fetch('./subjects.json').then(r=>r.json()).then(list=>{
           subjectOptions = list;
           renderOptions(subjectListEl, list);
