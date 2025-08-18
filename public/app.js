@@ -24,8 +24,6 @@
         const stepTotal = Q('stepTotal');
         const subName = Q('subName');
         const subLevel = Q('subLevel');
-        const subMaths = Q('subMaths');
-        const mathsLockHint = Q('mathsLockHint');
         const gradePills = Q('gradePills');
         const remainingLabel = Q('remainingLabel');
         const remainingBar = Q('remainingBar');
@@ -42,8 +40,6 @@
         const selectionNote = Q('selectionNote');
         const resultsEl = Q('results');
         const histCanvas = Q('histogram');
-        const subjectListEl = Q('subjectList');
-        const subjectLetters = Q('subjectLetters');
 
         // Firebase setup
         const firebaseConfig = {
@@ -77,42 +73,13 @@
           });
         }
 
-        // Datalist helpers
-        const renderOptions = (dl, opts) => {
-          dl.innerHTML = '';
-          opts.forEach(name => {
+        fetch('subjects.json').then(r=>r.json()).then(list=>{
+          list.forEach(name => {
             const opt = document.createElement('option');
             opt.value = name;
-            dl.appendChild(opt);
+            opt.textContent = name;
+            subName.appendChild(opt);
           });
-        };
-        const initLetterFilter = (container, allOpts, dl) => {
-          const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-          container.innerHTML = '';
-          const setActive = (btn) => {
-            Array.from(container.querySelectorAll('button')).forEach(b => b.classList.toggle('active', b === btn));
-          };
-          const makeBtn = (label, filterFn) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.textContent = label;
-            btn.onclick = () => {
-              renderOptions(dl, filterFn());
-              setActive(btn);
-            };
-            container.appendChild(btn);
-            return btn;
-          };
-          const allBtn = makeBtn('All', () => allOpts);
-          setActive(allBtn);
-          letters.forEach(l => makeBtn(l, () => allOpts.filter(n => n.toUpperCase().startsWith(l))));
-        };
-
-        let subjectOptions = [];
-        fetch('subjects.json').then(r=>r.json()).then(list=>{
-          subjectOptions = list;
-          renderOptions(subjectListEl, list);
-          initLetterFilter(subjectLetters, list, subjectListEl);
         });
 
 
@@ -133,7 +100,6 @@
         let subjects = Array.from({length:6}, ()=>({name:"", level:"Higher", isMaths:false, probs:Array(8).fill(0)}));
         let current = 0;
         let activeGrade = 0;
-        let mathsIndex = null;
         let targetDebounce = null;
         let histChart = null;
   
@@ -205,41 +171,17 @@
         function renderWizard(){
           stepNow.textContent = String(current+1);
           stepTotal.textContent = String(subjects.length);
-  
+
           const s = subjects[current];
+          s.isMaths = (s.name === 'Mathematics');
           subName.value = s.name;
-          subName.placeholder = `Enter subject ${current+1}`;
           subLevel.value = s.level;
-  
-          // Maths single-select
-          const idx = subjects.findIndex(x => x.isMaths);
-          mathsIndex = (idx >= 0) ? idx : null;
-  
-          subMaths.checked = !!s.isMaths;
-          const locked = mathsIndex !== null && mathsIndex !== current;
-          subMaths.disabled = locked;
-          mathsLockHint.classList.toggle('d-none', !locked);
-  
-          subMaths.onchange = ()=>{
-            if (subMaths.checked){
-              if (mathsIndex !== null && mathsIndex !== current) subjects[mathsIndex].isMaths = false;
-              subjects[current].isMaths = true; mathsIndex = current;
-            } else {
-              if (mathsIndex === current) mathsIndex = null;
-              subjects[current].isMaths = false;
-            }
-            renderWizard();
-          };
-  
-          // name/level
-          subName.oninput = ()=> {
-            const val = subName.value.trim();
+
+          subName.onchange = ()=> {
+            const val = subName.value;
             subjects[current].name = val;
-            if (subjectOptions.length && !subjectOptions.includes(val)) {
-              subName.setCustomValidity('Choose a subject from the list');
-            } else {
-              subName.setCustomValidity('');
-            }
+            subjects[current].isMaths = (val === 'Mathematics');
+            renderWizard();
           };
           subLevel.onchange = ()=> { subjects[current].level = subLevel.value; renderWizard(); };
   
@@ -269,16 +211,10 @@
   
         function saveFromUI(){
           const s = subjects[current];
-          const val = subName.value.trim();
-          if (subjectOptions.length && !subjectOptions.includes(val)) {
-            subName.setCustomValidity('Choose a subject from the list');
-            subName.reportValidity();
-            s.name = `Subject ${current+1}`;
-          } else {
-            subName.setCustomValidity('');
-            s.name = val || `Subject ${current+1}`;
-          }
+          const val = subName.value;
+          s.name = val || `Subject ${current+1}`;
           s.level = subLevel.value;
+          s.isMaths = (val === 'Mathematics');
         }
   
         /* ====== Input helpers ====== */
