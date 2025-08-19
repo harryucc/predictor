@@ -6,6 +6,8 @@ service cloud.firestore {
       allow read: if resource.data.publish == true ||
                    (request.auth != null && request.auth.uid == userId);
     }
+    match /{path=**}/predictions/{predictionId} {
+      allow read: if resource.data.publish == true;
+    }
   }
 }
-
