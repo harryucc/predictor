@@ -39,19 +39,33 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    const perUser = new Map();
     snap.forEach(doc => {
+      const uid = doc.ref && doc.ref.parent && doc.ref.parent.parent
+        ? doc.ref.parent.parent.id
+        : null;
+      if (!uid) return;
       const data = doc.data();
       const mean = data.meanMarks ? Number(data.meanMarks) : 0;
       const target = data.desiredMarks ? Number(data.desiredMarks) : 0;
-      const colour = colorFor(mean, target);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${data.school || ''}</td>
-        <td class="fw-bold" style="color:${colour}">${mean.toFixed(1)}</td>
-        <td class="fw-bold" style="color:${colour}">${target}</td>
-      `;
-      listBody.appendChild(tr);
+      const existing = perUser.get(uid);
+      if (!existing || mean > existing.mean) {
+        perUser.set(uid, { data, mean, target });
+      }
     });
+
+    Array.from(perUser.values())
+      .sort((a, b) => b.mean - a.mean)
+      .forEach(({ data, mean, target }) => {
+        const colour = colorFor(mean, target);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${data.school || ''}</td>
+          <td class="fw-bold" style="color:${colour}">${mean.toFixed(1)}</td>
+          <td class="fw-bold" style="color:${colour}">${target}</td>
+        `;
+        listBody.appendChild(tr);
+      });
   } catch (err) {
     listBody.innerHTML = `<tr><td colspan="3" class="text-danger">${err.message || err}</td></tr>`;
   }
