@@ -20,15 +20,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     const schoolStats = new Map();
     const subjectStats = new Map();
 
+    const normalizeSchoolName = name => {
+      return name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(w => w && w.length > 2 && !['college', 'school', 'secondary', 'community', 'the', 'of', 'and'].includes(w))
+        .join(' ');
+    };
+
     snap.forEach(doc => {
       const data = doc.data();
       const mean = typeof data.meanMarks === 'number' ? data.meanMarks : null;
       const school = data.school;
       if (school && mean !== null) {
-        const entry = schoolStats.get(school) || { total: 0, count: 0 };
-        entry.total += mean;
-        entry.count += 1;
-        schoolStats.set(school, entry);
+        const key = normalizeSchoolName(school);
+        if (key) {
+          const entry = schoolStats.get(key) || { total: 0, count: 0, display: school };
+          entry.total += mean;
+          entry.count += 1;
+          if (!schoolStats.has(key)) {
+            entry.display = school;
+          }
+          schoolStats.set(key, entry);
+        }
       }
       if (Array.isArray(data.subjects)) {
         data.subjects.forEach(sub => {
@@ -42,7 +57,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const schools = Array.from(schoolStats.entries())
-      .map(([school, { total, count }]) => ({ school, avg: total / count }))
+      .filter(([_, { count }]) => count > 1)
+      .map(([_, { total, count, display }]) => ({ school: display, avg: total / count }))
       .sort((a, b) => b.avg - a.avg)
       .slice(0, 5);
 
