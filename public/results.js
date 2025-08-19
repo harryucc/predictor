@@ -14,16 +14,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function colorFor(mean, target) {
     if (!target || !mean) return '#6c757d';
+    if (target > mean) return '#dc3545';
     const ratio = mean / target;
-    if (ratio >= 1) {
-      const light = 45 - Math.min((ratio - 1) * 25, 25); // deepen with ratio
-      return `hsl(120, 70%, ${light}%)`;
-    }
-    if (ratio >= 0.9) {
-      return '#6c757d'; // within 10% below target
-    }
-    const light = 50 - Math.min((0.9 - ratio) * 100, 25); // deepen red as ratio drops
-    return `hsl(0, 70%, ${light}%)`;
+    const light = 45 - Math.min((ratio - 1) * 25, 25); // deepen with ratio
+    return `hsl(120, 70%, ${light}%)`;
   }
 
   try {
