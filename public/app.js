@@ -210,6 +210,7 @@
           const timestamp = new Date().toISOString();
           const safeSchool = school.replace(/[^a-zA-Z0-9]/g, '_');
           const docName = `${meanPoints}+${safeSchool}+${timestamp}`;
+          const publish = window.confirm('Would you like to publish your results?');
           const payload = {
             school,
             desiredMarks,
@@ -218,9 +219,15 @@
               name: s.name,
               level: s.level,
               expected: s.expected
-            }))
+            })),
+            publish
           };
+          if (publish) {
+            payload.publishedAt = firebase.firestore.FieldValue.serverTimestamp();
+          }
           submitPrediction(payload, docName).catch(err => showErr(err.message || err));
+          const linkEl = document.getElementById('resultsLink');
+          if (linkEl) linkEl.style.display = 'block';
         };
   
         targetInput.addEventListener('input', ()=>{
