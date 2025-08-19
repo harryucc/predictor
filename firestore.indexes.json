@@ -46,6 +46,15 @@
   //     ]
   //   },
   // ]
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "predictions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publish", "mode": "ASCENDING" },
+        { "fieldPath": "publishedAt", "mode": "DESCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }
