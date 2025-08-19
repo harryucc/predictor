@@ -9,11 +9,8 @@
   
     window.addEventListener('error', (e)=> {
       // Ignore generic cross-origin errors from third-party scripts
-    codex/add-user-signup-for-results-improvement-3ryfgt
       if (e.message && e.message.toLowerCase().includes('script error')) return;
-=======
       if (e.message === 'Script error.' && !e.filename) return;
-    main
       showErr(e.message || e.error);
     });
     window.addEventListener('unhandledrejection', (e)=> showErr(e.reason || 'Unhandled promise rejection'));
@@ -146,12 +143,16 @@
         const pointsOrdinary = [56,46,37,28,20,12,0,0];
         const H_LABELS = ["H1","H2","H3","H4","H5","H6","H7","H8"];
         const O_LABELS = ["O1","O2","O3","O4","O5","O6","O7","O8"];
+        const MAX_POINTS = 625;
+
+        const isMathsName = (name='') => {
+          const lower = name.trim().toLowerCase();
+          return lower === 'mathematics' || lower === 'maths';
+        };
 
         const getPoints = (g, name, level) => {
           if (level === 'Ordinary') return pointsOrdinary[g];
-          const lower = name.trim().toLowerCase();
-          const isMaths = lower === 'mathematics' || lower === 'maths';
-          return isMaths ? pointsMathsHigher[g] : pointsHigher[g];
+          return isMathsName(name) ? pointsMathsHigher[g] : pointsHigher[g];
         };
 
         // Model
@@ -241,6 +242,8 @@
             subjects[current].name = val;
             if (subjectOptions.length && !subjectOptions.includes(val)) {
               subName.setCustomValidity('Choose a subject from the list');
+            } else if (isMathsName(val) && subjects.some((s, i) => i !== current && isMathsName(s.name))) {
+              subName.setCustomValidity('Mathematics can only be entered once');
             } else {
               subName.setCustomValidity('');
             }
@@ -278,6 +281,10 @@
             subName.setCustomValidity('Choose a subject from the list');
             subName.reportValidity();
             s.name = `Subject ${current+1}`;
+          } else if (isMathsName(val) && subjects.some((subj, idx) => idx !== current && isMathsName(subj.name))) {
+            subName.setCustomValidity('Mathematics can only be entered once');
+            subName.reportValidity();
+            s.name = `Subject ${current+1}`;
           } else {
             subName.setCustomValidity('');
             s.name = val || `Subject ${current+1}`;
@@ -297,12 +304,19 @@
   
         /* ====== Prepare subjects for calc ====== */
         function collectForCalc(){
+          let seenMath = false;
           return subjects.map((s,idx)=>{
             const rawSum = s.probs.reduce((a,b)=>a+b,0);
             const probs = rawSum>0 ? s.probs.map(p=>p/rawSum) : Array(8).fill(0); // skip empty later
             let expected=0;
             for (let g=0; g<8; g++) expected += probs[g]*getPoints(g, s.name, s.level);
             return { name: s.name || `Subject ${idx+1}`, level: s.level, probs, expected, rawSum };
+          }).filter(s => {
+            if (isMathsName(s.name)) {
+              if (seenMath) return false;
+              seenMath = true;
+            }
+            return true;
           });
         }
         function bestSix(list){
@@ -314,9 +328,8 @@
         /* ====== Ultra-fast DP over points ====== */
         function dpDistribution(subjs){
           if (subjs.length === 0) return { points:[0], probs:[1] };
-          const maxPerSubj = 125;
-          const maxSum = subjs.length * maxPerSubj;
-  
+          const maxSum = MAX_POINTS;
+
           let dp = new Float64Array(maxSum + 1);
           dp[0] = 1;
   
@@ -333,7 +346,8 @@
               const base = dp[s];
               if (base === 0) continue;
               for (const [score, prob] of pts){
-                next[s + score] += base * prob;
+                const dest = Math.min(maxSum, s + score);
+                next[dest] += base * prob;
               }
             }
             dp = next;
@@ -416,7 +430,8 @@
   
           const dist = dpDistribution(selected);
           const {mean, stdDev} = computeStats(dist);
-          const targetVal = Number(targetInput.value);
+          const targetVal = Math.min(Number(targetInput.value), MAX_POINTS);
+          targetInput.value = targetVal;
           const pGE = Number.isFinite(targetVal) ? probabilityGE(dist, targetVal) : null;
   
           resultsEl.innerHTML = `
