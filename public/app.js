@@ -202,6 +202,9 @@
           const meanPoints = result && typeof result.mean === 'number'
             ? Math.round(result.mean)
             : 'unknown';
+          const probTarget = result && typeof result.pGE === 'number'
+            ? result.pGE
+            : null;
           const timestamp = new Date().toISOString();
           const safeSchool = school.replace(/[^a-zA-Z0-9]/g, '_');
           const docName = `${meanPoints}+${safeSchool}+${timestamp}`;
@@ -215,7 +218,8 @@
               level: s.level,
               expected: s.expected
             })),
-            publish
+            publish,
+            targetProbability: probTarget
           };
           if (publish) {
             payload.publishedAt = firebase.firestore.FieldValue.serverTimestamp();
@@ -503,7 +507,7 @@
             </div>
           `;
           drawHistogram(dist, mean, stdDev, targetVal);
-          return {mean, stdDev};
+          return {mean, stdDev, pGE};
         }
   
         // Initial render
