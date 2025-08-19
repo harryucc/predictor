@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const snap = await db.collectionGroup('predictions')
       .where('publish', '==', true)
-      .orderBy('publishedAt', 'desc')
       .get();
 
     listBody.innerHTML = '';
@@ -38,19 +37,35 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    // Track highest mean score per user
+    const topByUser = new Map();
     snap.forEach(doc => {
       const data = doc.data();
       const mean = data.meanMarks ? Number(data.meanMarks) : 0;
-      const target = data.desiredMarks ? Number(data.desiredMarks) : 0;
-      const colour = colorFor(mean, target);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${data.school || ''}</td>
-        <td class="fw-bold" style="color:${colour}">${mean.toFixed(1)}</td>
-        <td class="fw-bold" style="color:${colour}">${target}</td>
-      `;
-      listBody.appendChild(tr);
+      const uid = doc.ref && doc.ref.parent && doc.ref.parent.parent
+        ? doc.ref.parent.parent.id
+        : null;
+      if (!uid) return; // skip if we cannot determine uid
+      const current = topByUser.get(uid);
+      if (!current || mean > current.mean) {
+        topByUser.set(uid, { data, mean });
+      }
     });
+
+    // Render sorted by mean descending
+    Array.from(topByUser.values())
+      .sort((a, b) => b.mean - a.mean)
+      .forEach(({ data, mean }) => {
+        const target = data.desiredMarks ? Number(data.desiredMarks) : 0;
+        const colour = colorFor(mean, target);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${data.school || ''}</td>
+          <td class="fw-bold" style="color:${colour}">${mean.toFixed(1)}</td>
+          <td class="fw-bold" style="color:${colour}">${target}</td>
+        `;
+        listBody.appendChild(tr);
+      });
   } catch (err) {
     listBody.innerHTML = `<tr><td colspan="3" class="text-danger">${err.message || err}</td></tr>`;
   }
