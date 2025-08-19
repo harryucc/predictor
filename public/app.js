@@ -52,26 +52,19 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
-        auth.signInAnonymously().catch(err => showErr(err.message || err));
-
         let userDocId = null;
-        function generateUserDocId(school) {
-          const safeSchool = school.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-          const now = new Date();
-          const day = now.getDate();
-          const month = now.getMonth() + 1;
-          const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-          return `${safeSchool}+${day}_${month}:${time}`;
-        }
+        auth.signInAnonymously()
+          .then(() => { userDocId = auth.currentUser.uid; })
+          .catch(err => showErr(err.message || err));
 
         async function submitPrediction(prediction, docName) {
           if (!userDocId) {
-            userDocId = generateUserDocId(prediction.school);
-            await db.collection('users').doc(userDocId).set({
-              school: prediction.school,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+            throw new Error('User ID not established');
           }
+          await db.collection('users').doc(userDocId).set({
+            school: prediction.school,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
           const ref = db.collection('users').doc(userDocId).collection('predictions');
           const docRef = ref.doc(docName);
           await docRef.set({
