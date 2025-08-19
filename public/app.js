@@ -222,7 +222,7 @@
           }
           submitPrediction(payload, docName).catch(err => showErr(err.message || err));
           const linkEl = document.getElementById('resultsLink');
-          if (publish && linkEl) linkEl.style.display = 'block';
+          if (linkEl) linkEl.style.display = 'block';
         };
   
         targetInput.addEventListener('input', ()=>{
