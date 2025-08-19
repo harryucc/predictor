@@ -1,5 +1,11 @@
 document.addEventListener('DOMContentLoaded', async () => {
   const listBody = document.getElementById('resultsBody');
+  const headers = document.querySelectorAll('th[data-sort]');
+
+  // default sort: most recent first
+  let entries = [];
+  let sortKey = 'createdAt';
+  let sortDir = 'desc';
 
   // Firebase setup (same config as app.js)
   const firebaseConfig = {
@@ -20,14 +26,78 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `hsl(120, 70%, ${light}%)`;
   }
 
+  function compare(a, b) {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    let vA = a[sortKey];
+    let vB = b[sortKey];
+    if (sortKey === 'school') {
+      return dir * vA.localeCompare(vB);
+    }
+    if (sortKey === 'createdAt') {
+      vA = vA ? vA.getTime() : 0;
+      vB = vB ? vB.getTime() : 0;
+      return dir * (vA - vB);
+    }
+    return dir * (vA - vB);
+  }
+
+  function updateIndicators() {
+    headers.forEach(th => {
+      const key = th.dataset.sort;
+      const base = th.dataset.label || th.textContent.replace(/[▲▼]/g, '').trim();
+      th.dataset.label = base;
+      th.textContent = base;
+      th.style.cursor = 'pointer';
+      if (key === sortKey) {
+        th.textContent = `${base} ${sortDir === 'asc' ? '▲' : '▼'}`;
+      }
+    });
+  }
+
+  function render() {
+    listBody.innerHTML = '';
+    const sorted = entries.slice().sort(compare);
+    if (sorted.length === 0) {
+      listBody.innerHTML = '<tr><td colspan="4" class="text-muted">No published results yet.</td></tr>';
+      updateIndicators();
+      return;
+    }
+    sorted.forEach(r => {
+      const colour = colorFor(r.mean, r.target);
+      const created = r.createdAt ? r.createdAt.toLocaleString() : '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.school}</td>
+        <td class="fw-bold" style="color:${colour}">${r.mean.toFixed(1)}</td>
+        <td class="fw-bold" style="color:${colour}">${r.target}</td>
+        <td>${created}</td>
+      `;
+      listBody.appendChild(tr);
+    });
+    updateIndicators();
+  }
+
+  headers.forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.sort;
+      if (sortKey === key) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortKey = key;
+        sortDir = key === 'school' ? 'asc' : 'desc';
+      }
+      render();
+    });
+  });
+
   try {
     const snap = await db.collectionGroup('predictions')
       .where('publish', '==', true)
       .get();
 
-    listBody.innerHTML = '';
     if (snap.empty) {
-      listBody.innerHTML = '<tr><td colspan="3" class="text-muted">No published results yet.</td></tr>';
+      entries = [];
+      render();
       return;
     }
 
@@ -46,21 +116,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    // Render sorted by mean descending
-    Array.from(topByUser.values())
-      .sort((a, b) => b.mean - a.mean)
-      .forEach(({ data, mean }) => {
-        const target = data.desiredMarks ? Number(data.desiredMarks) : 0;
-        const colour = colorFor(mean, target);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${data.school || ''}</td>
-          <td class="fw-bold" style="color:${colour}">${mean.toFixed(1)}</td>
-          <td class="fw-bold" style="color:${colour}">${target}</td>
-        `;
-        listBody.appendChild(tr);
-      });
+    entries = Array.from(topByUser.values()).map(({ data, mean }) => ({
+      school: data.school || '',
+      mean,
+      target: data.desiredMarks ? Number(data.desiredMarks) : 0,
+      createdAt: (data.createdAt && typeof data.createdAt.toDate === 'function')
+        ? data.createdAt.toDate()
+        : null
+    }));
+
+    render();
   } catch (err) {
-    listBody.innerHTML = `<tr><td colspan="3" class="text-danger">${err.message || err}</td></tr>`;
+    listBody.innerHTML = `<tr><td colspan="4" class="text-danger">${err.message || err}</td></tr>`;
   }
 });
+
