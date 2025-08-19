@@ -7,6 +7,7 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const auth = firebase.auth();
+  const MAX_POINTS = 625;
 
   const authSection = document.getElementById('authSection');
   const resultsSection = document.getElementById('resultsSection');
@@ -35,6 +36,10 @@
         const actualVal = data.actualResults ? data.actualResults : '';
         li.innerHTML = `<div><strong>${data.desiredMarks ?? ''}</strong> points (mean ${data.meanMarks ?? ''}) - <small>${date}</small></div>` +
                        `<div class="mt-2 d-flex align-items-center gap-2"><input type="text" class="form-control form-control-sm actual-input" placeholder="Enter mock results" value="${actualVal}"><button class="btn btn-sm btn-outline-primary save-actual" data-id="${doc.id}">Save</button></div>`;
+        // Highlight entries that achieved the maximum predicted points
+        if ((data.meanMarks ?? 0) >= MAX_POINTS) {
+          li.classList.add('list-group-item-primary');
+        }
         predictionsList.appendChild(li);
       });
       predictionsList.querySelectorAll('.save-actual').forEach(btn => {
