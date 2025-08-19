@@ -34,7 +34,8 @@
         li.className = 'list-group-item';
         const date = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleDateString() : 'unknown';
         const actualVal = data.actualResults ? data.actualResults : '';
-        li.innerHTML = `<div><strong>${data.desiredMarks ?? ''}</strong> points (mean ${data.meanMarks ?? ''}) - <small>${date}</small></div>` +
+        const probText = data.targetProbability != null ? `, chance ${(data.targetProbability * 100).toFixed(2)}%` : '';
+        li.innerHTML = `<div><strong>${data.desiredMarks ?? ''}</strong> points (mean ${data.meanMarks ?? ''}${probText}) - <small>${date}</small></div>` +
                        `<div class="mt-2 d-flex align-items-center gap-2"><input type="text" class="form-control form-control-sm actual-input" placeholder="Enter mock results" value="${actualVal}"><button class="btn btn-sm btn-outline-primary save-actual" data-id="${doc.id}">Save</button></div>`;
         // Highlight entries that achieved the maximum predicted points
         if ((data.meanMarks ?? 0) >= MAX_POINTS) {
