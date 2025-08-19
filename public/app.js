@@ -143,20 +143,18 @@
         const pointsOrdinary = [56,46,37,28,20,12,0,0];
         const H_LABELS = ["H1","H2","H3","H4","H5","H6","H7","H8"];
         const O_LABELS = ["O1","O2","O3","O4","O5","O6","O7","O8"];
-  
+
         const getPoints = (g, isMaths, level) =>
           level === 'Ordinary' ? pointsOrdinary[g] : (isMaths ? pointsMathsHigher[g] : pointsHigher[g]);
-  
+
         // Model
         let subjects = Array.from({length:6}, ()=>({name:"", level:"Higher", isMaths:false, probs:Array(8).fill(0)}));
         let current = 0;
         let activeGrade = 0;
         let targetDebounce = null;
         let histChart = null;
-  
-        /* ====== UI Wiring ====== */
-        prevBtn.onclick = ()=> { if (current>0){ saveFromUI(); current--; renderWizard(); } };
-        nextBtn.onclick = ()=> {
+
+        function goToNextSubject(){
           if (!validateCurrentSubject()) return;
           if (!subjectComplete(subjects[current])){
             alert('Please ensure probabilities total 100% before moving on.');
@@ -167,7 +165,11 @@
             window.scrollTo({top:0, behavior:'smooth'});
             subName.focus();
           }
-        };
+        }
+
+        /* ====== UI Wiring ====== */
+        prevBtn.onclick = ()=> { if (current>0){ saveFromUI(); current--; renderWizard(); } };
+        nextBtn.onclick = goToNextSubject;
         addBtn .onclick = ()=> {
           if (!validateCurrentSubject()) return;
           if (!subjectComplete(subjects[current])){
@@ -240,10 +242,12 @@
         };
         fillRemaining.onclick = ()=>{
           const s = subjects[current];
+          const wasComplete = subjectComplete(s);
           const sumOthers = s.probs.reduce((a,b,i)=> i===activeGrade ? a : a+b, 0);
           const remaining = Math.max(0, 1 - sumOthers);
           s.probs[activeGrade] = remaining;
           renderWizard();
+          if (!wasComplete && subjectComplete(s) && isValidSubject(s.name)) goToNextSubject();
         };
   
         // Percent grid
@@ -321,11 +325,13 @@
         /* ====== Input helpers ====== */
         function setGradeValue(asDec){
           const s = subjects[current];
+          const wasComplete = subjectComplete(s);
           const sumOthers = s.probs.reduce((a,b,i)=> i===activeGrade ? a : a+b, 0);
           const maxAllowed = Math.max(0, 1 - sumOthers);
           s.probs[activeGrade] = Math.min(Math.max(0, asDec), maxAllowed);
           probInput.value = "";
           renderWizard();
+          if (!wasComplete && subjectComplete(s) && isValidSubject(s.name)) goToNextSubject();
         }
   
         /* ====== Prepare subjects for calc ====== */
