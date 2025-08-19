@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function colorFor(mean, target) {
     if (!target || !mean) return '#6c757d';
+    if (target < mean) return '#dc3545';
     const ratio = mean / target;
     if (ratio >= 1) {
       const light = 45 - Math.min((ratio - 1) * 25, 25); // deepen with ratio
