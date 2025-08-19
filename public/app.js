@@ -30,6 +30,7 @@
         const remainingBar = Q('remainingBar');
         const subjectCard = Q('subjectCard');
         const probInput = Q('probInput');
+        const subjectsDisplay = Q('subjectsDisplay');
         const prevBtn = Q('prevBtn');
         const nextBtn = Q('nextBtn');
         const addBtn = Q('addBtn');
@@ -248,18 +249,24 @@
           });
         });
 
-        Q('kpSet').onclick = ()=>{
+        function applyProbInput(){
           const v = Number(probInput.value);
           if (!Number.isFinite(v)) return;
           const asDec = Math.max(0, Math.min(1, (v>1)? v/100 : v));
           setGradeValue(asDec);
-        };
-        probInput.addEventListener('keydown', e=>{ if(e.key==='Enter') Q('kpSet').click(); });
+        }
+        probInput.addEventListener('change', applyProbInput);
+        probInput.addEventListener('keydown', e=>{ if(e.key==='Enter') applyProbInput(); });
   
         /* ====== Render Wizard ====== */
       function renderWizard(){
           stepNow.textContent = String(current+1);
           stepTotal.textContent = String(subjects.length);
+
+          subjectsDisplay.innerHTML = subjects
+            .filter(s=>s.name.trim())
+            .map(s=>`<span class="badge-chip">${s.name}</span>`)
+            .join('');
 
           const s = subjects[current];
           s.isMaths = (s.name === 'Mathematics');
@@ -407,6 +414,25 @@
           const stroke = getComputedStyle(document.documentElement).getPropertyValue('--accent-green-border').trim();
 
           const plugins = [];
+          if (Number.isFinite(mean)){
+            plugins.push({
+              id:'meanLine',
+              afterDraw(chart){
+                const xScale = chart.scales.x;
+                if (mean < xScale.min || mean > xScale.max) return;
+                const x = xScale.getPixelForValue(mean);
+                const ctx = chart.ctx;
+                ctx.save();
+                ctx.strokeStyle = 'green';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, chart.chartArea.top);
+                ctx.lineTo(x, chart.chartArea.bottom);
+                ctx.stroke();
+                ctx.restore();
+              }
+            });
+          }
           if (Number.isFinite(targetVal)){
             plugins.push({
               id:'targetLine',

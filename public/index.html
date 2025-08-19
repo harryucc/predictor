@@ -111,6 +111,7 @@
               <div class="text-muted small">Complete each subject to 100%.</div>
             </div>
             <div class="card-body">
+              <div id="subjectsDisplay" class="mb-3"></div>
               <div class="row g-4">
                 <!-- Subject meta + grades -->
                 <div class="col-12">
@@ -160,11 +161,7 @@
                   <label class="form-label">Set probability for the selected grade</label>
 
                   <div class="mb-3">
-                    <label for="probInput" class="form-label">Manual Probability</label>
-                    <div class="input-group">
-                      <input id="probInput" class="form-control" placeholder="e.g. 70 or 0.7">
-                      <button id="kpSet" class="btn btn-main" type="button">Set Value for Selected Grade</button>
-                    </div>
+                    <input id="probInput" class="form-control form-control-lg w-100" style="max-width:350px;" placeholder="e.g. 70 or 0.7">
                   </div>
 
                   <!-- Percent grid -->
@@ -223,6 +220,9 @@
                 <div class="card-header bg-white fw-semibold">Probability Distribution</div>
                 <div class="card-body">
                   <canvas id="histogram" height="340"></canvas>
+                </div>
+                <div class="card-footer small">
+                  <span class="text-success">Green</span> line: mean result. <span class="text-danger">Red</span> line: target points.
                 </div>
               </div>
             </div>
