@@ -180,6 +180,7 @@
             school,
             desiredMarks,
             meanMarks: result ? result.mean : null,
+            targetProbability: result ? result.pGE : null,
             subjects: subjects.map(s => ({
               name: s.name,
               level: s.level,
@@ -442,7 +443,7 @@
             </div>
           `;
           drawHistogram(dist, mean, stdDev);
-          return {mean, stdDev};
+          return {mean, stdDev, pGE};
         }
   
         // expose for debug if you like
