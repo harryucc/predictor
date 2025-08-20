@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const schools = Array.from(schoolStats.values())
-      .filter(({ count }) => count > 2)
+      .filter(({ count }) => count > 1)
       .map(({ name, total, count }) => ({ school: name, avg: total / count }))
       .sort((a, b) => b.avg - a.avg);
 
