@@ -27,35 +27,31 @@
   <div class="container py-4">
     <h1 class="h4 mb-3">Scoring</h1>
     <div class="row">
-      <div class="col-md-6 mb-4">
+      <div class="col-md-6 mb-4 p-3 bg-light rounded">
         <h2 class="h5">Top Schools by Mean Points</h2>
         <ol id="schoolList" class="overflow-auto" style="max-height:10rem"><li class="text-muted">Loading...</li></ol>
       </div>
-      <div class="col-md-6 mb-4">
+      <div class="col-md-6 mb-4 p-3 bg-light rounded">
         <h2 class="h5">Top Subjects by Average Points</h2>
         <ol id="subjectList" class="overflow-auto" style="max-height:10rem"><li class="text-muted">Loading...</li></ol>
       </div>
     </div>
-    <div class="mb-4">
-      <h2 class="h5">
-        <button class="btn btn-link p-0" data-bs-toggle="collapse" data-bs-target="#resultsCollapse" aria-expanded="true">Results</button>
-      </h2>
-      <div class="collapse show" id="resultsCollapse">
-        <div class="table-responsive" style="max-height:50vh; overflow:auto;">
-          <table class="table table-striped">
-            <thead>
-              <tr>
-                <th data-sort="school">School</th>
-                <th data-sort="mean">Mean Points</th>
-                <th data-sort="target">Target Points</th>
-                <th data-sort="createdAt">Date Added</th>
-              </tr>
-            </thead>
-            <tbody id="resultsBody">
-              <tr><td colspan="4" class="text-muted">Loading...</td></tr>
-            </tbody>
-          </table>
-        </div>
+    <div class="mb-4 p-3 bg-light rounded">
+      <h2 class="h5 mb-3">Results, <span id="resultsCount">0 entries</span></h2>
+      <div class="table-responsive" style="max-height:50vh; overflow:auto;">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th data-sort="school">School</th>
+              <th data-sort="mean">Mean Points</th>
+              <th data-sort="target">Target Points</th>
+              <th data-sort="createdAt">Date Added</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <tr><td colspan="4" class="text-muted">Loading...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
