@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const subjectList = document.getElementById('subjectList');
   const listBody = document.getElementById('resultsBody');
   const headers = document.querySelectorAll('th[data-sort]');
+  const resultsCount = document.getElementById('resultsCount');
 
   let entries = [];
   let sortKey = 'createdAt';
@@ -162,16 +163,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const schools = Array.from(schoolStats.values())
       .filter(({ count }) => count > 1)
-      .map(({ name, total, count }) => ({ school: name, avg: total / count }))
+      .map(({ name, total, count }) => ({ school: name, avg: total / count, count }))
       .sort((a, b) => b.avg - a.avg);
 
     schoolList.innerHTML = '';
     if (schools.length === 0) {
       schoolList.innerHTML = '<li class="text-muted">No data</li>';
     } else {
-      schools.forEach(({ school, avg }) => {
+      schools.forEach(({ school, avg, count }) => {
         const li = document.createElement('li');
-        li.textContent = `${school} – ${avg.toFixed(1)}`;
+        li.textContent = `${school} (${count} entries) ${avg.toFixed(1)} avg points`;
         schoolList.appendChild(li);
       });
     }
@@ -185,12 +186,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         : null
     }));
 
+    resultsCount.textContent = `${entries.length} entries`;
     render();
   } catch (err) {
     const msg = err.message || String(err);
     subjectList.innerHTML = `<li class="text-danger">${msg}</li>`;
     schoolList.innerHTML = `<li class="text-danger">${msg}</li>`;
     listBody.innerHTML = `<tr><td colspan="4" class="text-danger">${msg}</td></tr>`;
+    if (resultsCount) resultsCount.textContent = '0 entries';
   }
 });
 
