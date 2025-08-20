@@ -1,13 +1,13 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  const schoolList = document.getElementById('schoolList');
+  const subjectList = document.getElementById('subjectList');
   const listBody = document.getElementById('resultsBody');
   const headers = document.querySelectorAll('th[data-sort]');
 
-  // default sort: most recent first
   let entries = [];
   let sortKey = 'createdAt';
   let sortDir = 'desc';
 
-  // Firebase setup (same config as app.js)
   const firebaseConfig = {
     apiKey: "AIzaSyAS5PvPMYQjCQz88drt1VG6B5Y2v3PpjZM",
     authDomain: "lcpredic.firebaseapp.com",
@@ -18,11 +18,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
   const db = firebase.firestore();
 
+  function normalizeSchool(name) {
+    return name.toLowerCase()
+      .replace(/\b(colaiste|coláiste|college|school|secondary|community|cbs|of|the|and)\b/g, '')
+      .replace(/[^a-z]/g, '')
+      .trim();
+  }
+
+  function displaySchool(name) {
+    return name.replace(/\b(College|School|Secondary|Community|Colaiste|Coláiste|Cbs)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function colorFor(mean, target) {
     if (!target || !mean) return '#6c757d';
     if (target > mean) return '#dc3545';
     const ratio = mean / target;
-    const light = 45 - Math.min((ratio - 1) * 25, 25); // deepen with ratio
+    const light = 45 - Math.min((ratio - 1) * 25, 25);
     return `hsl(120, 70%, ${light}%)`;
   }
 
@@ -95,26 +108,73 @@ document.addEventListener('DOMContentLoaded', async () => {
       .where('publish', '==', true)
       .get();
 
-    if (snap.empty) {
-      entries = [];
-      render();
-      return;
-    }
-
-    // Track highest mean score per user
+    const subjectStats = new Map();
+    const schoolStats = new Map();
     const topByUser = new Map();
+
     snap.forEach(doc => {
       const data = doc.data();
-      const mean = data.meanMarks ? Number(data.meanMarks) : 0;
+      const mean = typeof data.meanMarks === 'number' ? data.meanMarks : 0;
+
+      const school = data.school;
+      if (school && mean) {
+        const key = normalizeSchool(school);
+        const entry = schoolStats.get(key) || { name: displaySchool(school), total: 0, count: 0 };
+        entry.total += mean;
+        entry.count += 1;
+        schoolStats.set(key, entry);
+      }
+
+      if (Array.isArray(data.subjects)) {
+        data.subjects.forEach(sub => {
+          if (!sub || typeof sub.expected !== 'number' || !sub.name) return;
+          const sEntry = subjectStats.get(sub.name) || { total: 0, count: 0 };
+          sEntry.total += sub.expected;
+          sEntry.count += 1;
+          subjectStats.set(sub.name, sEntry);
+        });
+      }
+
       const uid = doc.ref && doc.ref.parent && doc.ref.parent.parent
         ? doc.ref.parent.parent.id
         : null;
-      if (!uid) return; // skip if we cannot determine uid
+      if (!uid) return;
       const current = topByUser.get(uid);
       if (!current || mean > current.mean) {
         topByUser.set(uid, { data, mean });
       }
     });
+
+    const subjects = Array.from(subjectStats.entries())
+      .map(([name, { total, count }]) => ({ name, avg: total / count }))
+      .sort((a, b) => b.avg - a.avg);
+
+    subjectList.innerHTML = '';
+    if (subjects.length === 0) {
+      subjectList.innerHTML = '<li class="text-muted">No data</li>';
+    } else {
+      subjects.forEach(({ name, avg }) => {
+        const li = document.createElement('li');
+        li.textContent = `${name} – ${avg.toFixed(1)}`;
+        subjectList.appendChild(li);
+      });
+    }
+
+    const schools = Array.from(schoolStats.values())
+      .filter(({ count }) => count > 2)
+      .map(({ name, total, count }) => ({ school: name, avg: total / count }))
+      .sort((a, b) => b.avg - a.avg);
+
+    schoolList.innerHTML = '';
+    if (schools.length === 0) {
+      schoolList.innerHTML = '<li class="text-muted">No data</li>';
+    } else {
+      schools.forEach(({ school, avg }) => {
+        const li = document.createElement('li');
+        li.textContent = `${school} – ${avg.toFixed(1)}`;
+        schoolList.appendChild(li);
+      });
+    }
 
     entries = Array.from(topByUser.values()).map(({ data, mean }) => ({
       school: data.school || '',
@@ -127,7 +187,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     render();
   } catch (err) {
-    listBody.innerHTML = `<tr><td colspan="4" class="text-danger">${err.message || err}</td></tr>`;
+    const msg = err.message || String(err);
+    subjectList.innerHTML = `<li class="text-danger">${msg}</li>`;
+    schoolList.innerHTML = `<li class="text-danger">${msg}</li>`;
+    listBody.innerHTML = `<tr><td colspan="4" class="text-danger">${msg}</td></tr>`;
   }
 });
 
